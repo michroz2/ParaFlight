@@ -1,21 +1,33 @@
+// Версия: 0.1.1 | Цель: Провайдеры локации и состояния GPX
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'location_entity.dart';
-import 'simulator_location_provider.dart';
-
-import 'package:flutter/services.dart' show rootBundle;
 import 'gpx_parser.dart';
+
+// Новое: импорты для плеера
+import 'playback_state.dart';
+import 'playback_notifier.dart';
+
+// Новое: Провайдер для PlaybackNotifier
+final playbackProvider = NotifierProvider<PlaybackNotifier, PlaybackState>(() {
+  return PlaybackNotifier();
+}); // конец playbackProvider
 
 final gpxPointsProvider = FutureProvider<List<LocationEntity>>((ref) async {
   final xmlString = await rootBundle.loadString('assets/mock_flight.gpx');
-  return GpxParser.parse(xmlString);
-});
+  final points = GpxParser.parse(xmlString);
+  // Изменение: инициализируем плеер
+  Future.microtask(() {
+    ref.read(playbackProvider.notifier).init(points);
+  }); // конец микротаска
+  return points;
+}); // конец gpxPointsProvider
 
-/// Провайдер потока данных геолокации, который слушает интерфейс
-final locationStreamProvider = StreamProvider<LocationEntity>((ref) async* {
-  final points = await ref.watch(gpxPointsProvider.future);
-  if (points.isNotEmpty) {
-    final simulator = SimulatorLocationProvider(points);
-    yield* simulator.locationStream;
-  }
-});
+// Изменение: удален StreamProvider
+// Новое: Провайдер текущей локации из плеера
+final locationProvider = Provider<LocationEntity?>((ref) {
+  return ref.watch(playbackProvider).currentLocation;
+}); // конец locationProvider
+

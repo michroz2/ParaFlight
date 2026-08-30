@@ -1,3 +1,5 @@
+// Версия: 0.1.1 | Цель: Главный экран панели приборов
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -11,7 +13,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
-}
+} // конец класса DashboardScreen
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final MapController _mapController = MapController();
@@ -19,16 +21,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final track = ref.watch(flightPathProvider);
-    final currentLocation = ref.watch(locationStreamProvider);
+    // Изменение: использование locationProvider вместо locationStreamProvider
+    final currentLocation = ref.watch(locationProvider);
 
-    ref.listen(locationStreamProvider, (previous, next) {
-      if (next.hasValue && next.value != null) {
+    ref.listen(locationProvider, (previous, next) {
+      if (next != null) {
         _mapController.move(
-          LatLng(next.value!.latitude, next.value!.longitude),
+          LatLng(next.latitude, next.longitude),
           15.0,
         );
-      }
-    });
+      } // конец if
+    }); // конец замыкания listen
 
     return Scaffold(
       appBar: AppBar(
@@ -83,23 +86,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: currentLocation.when(
-                  data: (data) => Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text('Высота: ${data.altitude.toStringAsFixed(1)} м'),
-                      Text('Скорость: ${data.speed.toStringAsFixed(1)} м/с'),
-                      Text('Курс: ${data.heading.toStringAsFixed(1)}°'),
-                    ],
-                  ),
-                  loading: () => const Center(child: Text('Ожидание данных...')),
-                  error: (err, stack) => Center(child: Text('Ошибка: $err')),
-                ),
+                child: currentLocation != null
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Text('Высота: ${currentLocation.altitude.toStringAsFixed(1)} м'),
+                          Text('Скорость: ${currentLocation.speed.toStringAsFixed(1)} м/с'),
+                          Text('Курс: ${currentLocation.heading.toStringAsFixed(1)}°'),
+                        ],
+                      )
+                    : const Center(child: Text('Ожидание данных...')),
               ),
             ),
           ),
         ],
       ),
     );
-  }
-}
+  } // конец метода build
+} // конец класса _DashboardScreenState
