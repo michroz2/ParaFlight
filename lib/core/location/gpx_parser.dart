@@ -34,11 +34,11 @@ class GpxParser {
         final prevLatLng = LatLng(prevLocation.latitude, prevLocation.longitude);
         final currentLatLng = LatLng(lat, lon);
         
-        final distMeters = distance.as(LengthUnit.Meter, prevLatLng, currentLatLng);
-        final timeDiffSeconds = time.difference(prevLocation.timestamp).inSeconds;
+        final distMeters = distance(prevLatLng, currentLatLng);
+        final timeDiffMs = time.difference(prevLocation.timestamp).inMilliseconds;
         
-        if (timeDiffSeconds > 0) {
-          speed = distMeters / timeDiffSeconds;
+        if (timeDiffMs > 0) {
+          speed = (distMeters / timeDiffMs) * 1000.0;
         }
         
         heading = distance.bearing(prevLatLng, currentLatLng);
