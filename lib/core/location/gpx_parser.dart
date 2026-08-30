@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:xml/xml.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_entity.dart';
@@ -34,7 +35,7 @@ class GpxParser {
         final prevLatLng = LatLng(prevLocation.latitude, prevLocation.longitude);
         final currentLatLng = LatLng(lat, lon);
         
-        final distMeters = distance(prevLatLng, currentLatLng);
+        final distMeters = _calculateExactDistance(prevLatLng, currentLatLng);
         final timeDiffMs = time.difference(prevLocation.timestamp).inMilliseconds;
         
         if (timeDiffMs > 0) {
@@ -58,5 +59,20 @@ class GpxParser {
     }
     
     return locations;
+  }
+
+  static double _calculateExactDistance(LatLng p1, LatLng p2) {
+    const R = 6371000.0; // Радиус Земли в метрах
+    final lat1 = p1.latitudeInRad;
+    final lat2 = p2.latitudeInRad;
+    final dLat = (p2.latitude - p1.latitude) * math.pi / 180.0;
+    final dLon = (p2.longitude - p1.longitude) * math.pi / 180.0;
+
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+              math.cos(lat1) * math.cos(lat2) *
+              math.sin(dLon / 2) * math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+
+    return R * c;
   }
 }
