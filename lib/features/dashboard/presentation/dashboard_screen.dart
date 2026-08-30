@@ -47,15 +47,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.paraflight.app',
               ),
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: track,
-                    color: Colors.blue,
-                    strokeWidth: 4.0,
-                  ),
-                ],
-              ),
+              if (track.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: track,
+                      color: Colors.blue,
+                      strokeWidth: 4.0,
+                    ),
+                  ],
+                ),
               if (track.isNotEmpty)
                 MarkerLayer(
                   markers: [
