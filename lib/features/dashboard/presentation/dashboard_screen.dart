@@ -1,9 +1,10 @@
-// Версия: 0.1.1 | Цель: Главный экран панели приборов
+// Версия: 0.1.2 | Цель: Главный экран панели приборов
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:math';
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
@@ -23,6 +24,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final track = ref.watch(flightPathProvider);
     // Изменение: использование locationProvider вместо locationStreamProvider
     final currentLocation = ref.watch(locationProvider);
+    
+    // Новое: состояние и нотифайер плеера
+    final playbackState = ref.watch(playbackProvider);
+    final playbackNotifier = ref.read(playbackProvider.notifier);
 
     ref.listen(locationProvider, (previous, next) {
       if (next != null) {
@@ -96,6 +101,65 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       )
                     : const Center(child: Text('Ожидание данных...')),
+              ),
+            ),
+          ),
+          // Новое: Панель управления воспроизведением
+          Positioned(
+            bottom: 20,
+            left: 16,
+            right: 16,
+            child: Card(
+              color: Colors.black54,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Slider(
+                    value: playbackState.progress,
+                    onChanged: (value) {
+                      playbackNotifier.seek(value);
+                    }, // конец замыкания onChanged
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.fast_rewind, color: Colors.white),
+                        onPressed: () {
+                          playbackNotifier.seek(0.0);
+                        }, // конец замыкания onPressed
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.remove, color: Colors.white),
+                        onPressed: () {
+                          playbackNotifier.setSpeed(max(0.5, playbackState.speedFactor / 2));
+                        }, // конец замыкания onPressed
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          playbackState.isPlaying ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          playbackNotifier.togglePlay();
+                        }, // конец замыкания onPressed
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        onPressed: () {
+                          playbackNotifier.setSpeed(min(16.0, playbackState.speedFactor * 2));
+                        }, // конец замыкания onPressed
+                      ),
+                      Text(
+                        'x${playbackState.speedFactor.toStringAsFixed(1)}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

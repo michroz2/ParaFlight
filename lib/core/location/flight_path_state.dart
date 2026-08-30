@@ -1,23 +1,19 @@
-// Версия: 0.1.1 | Цель: Провайдер пути полета
+// Версия: 0.1.2 | Цель: Провайдер пути полета
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_state.dart';
 
-class FlightPathNotifier extends Notifier<List<LatLng>> {
-  @override
-  List<LatLng> build() {
-    // Изменение: прослушивание нового locationProvider
-    ref.listen(locationProvider, (previous, next) {
-      if (next != null) {
-        state = [...state, LatLng(next.latitude, next.longitude)];
-      } // конец if
-    }); // конец замыкания listen
-    
+// Новое: реактивный срез пути
+final flightPathProvider = Provider<List<LatLng>>((ref) {
+  final pointsFuture = ref.watch(gpxPointsProvider);
+  final points = pointsFuture.valueOrNull;
+  
+  if (points == null || points.isEmpty) {
     return [];
-  } // конец метода build
-} // конец класса FlightPathNotifier
-
-final flightPathProvider = NotifierProvider<FlightPathNotifier, List<LatLng>>(() {
-  return FlightPathNotifier();
+  } // конец if
+  
+  final currentIndex = ref.watch(playbackProvider.select((s) => s.currentIndex));
+  
+  return points.sublist(0, currentIndex + 1).map((e) => LatLng(e.latitude, e.longitude)).toList();
 }); // конец flightPathProvider

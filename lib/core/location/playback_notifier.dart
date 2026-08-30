@@ -1,4 +1,4 @@
-// Версия: 0.1.0 | Цель: Контроллер воспроизведения симуляции
+// Версия: 0.1.1 | Цель: Контроллер воспроизведения симуляции
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,6 +49,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     state = state.copyWith(
       progress: progress,
       currentLocation: _points[_currentIndex],
+      currentIndex: _currentIndex,
     );
     if (state.isPlaying) {
       _playNext();
@@ -73,6 +74,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       state = state.copyWith(
         currentLocation: _points[_currentIndex],
         progress: newProgress,
+        currentIndex: _currentIndex,
       );
       _playNext();
     }); // конец замыкания Timer
