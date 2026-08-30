@@ -123,6 +123,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       playbackNotifier.seek(value);
                     }, // конец замыкания onChanged
                   ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDuration(playbackState.currentDuration),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        Text(
+                          _formatDuration(playbackState.totalDuration),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -168,3 +184,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   } // конец метода build
 } // конец класса _DashboardScreenState
+
+String _formatDuration(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+  String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+  if (duration.inHours > 0) {
+    return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+  return "$twoDigitMinutes:$twoDigitSeconds";
+}

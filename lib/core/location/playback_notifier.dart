@@ -19,6 +19,15 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
   void init(List<LocationEntity> points) {
     _points = points;
     _currentIndex = 0;
+    
+    if (_points.isNotEmpty) {
+      final totalDuration = _points.last.timestamp.difference(_points.first.timestamp);
+      state = state.copyWith(
+        totalDuration: totalDuration,
+        currentDuration: Duration.zero,
+      );
+    } // конец if
+    
     _playNext();
   } // конец метода init
 
@@ -46,10 +55,14 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     
     _timer?.cancel();
     _currentIndex = (progress * (_points.length - 1)).round();
+    
+    final currentDuration = _points[_currentIndex].timestamp.difference(_points.first.timestamp);
+    
     state = state.copyWith(
       progress: progress,
       currentLocation: _points[_currentIndex],
       currentIndex: _currentIndex,
+      currentDuration: currentDuration,
     );
     if (state.isPlaying) {
       _playNext();
@@ -71,10 +84,14 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     _timer = Timer(Duration(milliseconds: durationMs), () {
       _currentIndex++;
       final newProgress = _points.length > 1 ? _currentIndex / (_points.length - 1) : 1.0;
+      
+      final currentDuration = _points[_currentIndex].timestamp.difference(_points.first.timestamp);
+      
       state = state.copyWith(
         currentLocation: _points[_currentIndex],
         progress: newProgress,
         currentIndex: _currentIndex,
+        currentDuration: currentDuration,
       );
       _playNext();
     }); // конец замыкания Timer
