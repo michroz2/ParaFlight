@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="ParaFlight">
+  <trk>
+    <trkseg>
+      <trkpt lat="59.4370" lon="24.7530"><ele>150.0</ele><time>2026-08-30T10:00:00Z</time></trkpt>
+      <trkpt lat="59.4375" lon="24.7540"><ele>152.0</ele><time>2026-08-30T10:00:05Z</time></trkpt>
+      <trkpt lat="59.4380" lon="24.7550"><ele>155.0</ele><time>2026-08-30T10:00:10Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
