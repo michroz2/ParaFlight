@@ -70,10 +70,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   markers: [
                     Marker(
                       point: track.last,
-                      child: const Icon(
-                        Icons.flight,
-                        color: Colors.red,
-                        size: 32,
+                      child: Transform.rotate(
+                        angle: currentLocation != null ? currentLocation.heading * pi / 180.0 : 0.0,
+                        child: const Icon(
+                          Icons.flight,
+                          color: Colors.red,
+                          size: 32,
+                        ),
                       ),
                     ),
                   ],
