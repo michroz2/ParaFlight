@@ -16,8 +16,11 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 } // конец класса DashboardScreen
 
+enum MapRotationMode { north, free, heading }
+
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final MapController _mapController = MapController();
+  MapRotationMode _rotationMode = MapRotationMode.north;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +36,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (next != null) {
         _mapController.move(
           LatLng(next.latitude, next.longitude),
-          15.0,
+          _mapController.camera.zoom,
         );
+        if (_rotationMode == MapRotationMode.heading) {
+          _mapController.rotate(360.0 - next.heading);
+        }
       } // конец if
     }); // конец замыкания listen
 
@@ -46,9 +52,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(0, 0),
+            options: MapOptions(
+              initialCenter: const LatLng(0, 0),
               initialZoom: 13.0,
+              interactionOptions: InteractionOptions(
+                flags: _rotationMode == MapRotationMode.free 
+                    ? InteractiveFlag.all 
+                    : InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
             children: [
               TileLayer(
@@ -104,6 +115,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       )
                     : const Center(child: Text('Ожидание данных...')),
+              ),
+            ),
+          ),
+          // Новое: Кнопка компаса
+          Positioned(
+            top: 120,
+            right: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white.withAlpha(220),
+              onPressed: () {
+                setState(() {
+                  switch (_rotationMode) {
+                    case MapRotationMode.north:
+                      _rotationMode = MapRotationMode.free;
+                      break;
+                    case MapRotationMode.free:
+                      _rotationMode = MapRotationMode.heading;
+                      if (currentLocation != null) {
+                        _mapController.rotate(360.0 - currentLocation.heading);
+                      }
+                      break;
+                    case MapRotationMode.heading:
+                      _rotationMode = MapRotationMode.north;
+                      _mapController.rotate(0);
+                      break;
+                  }
+                });
+              },
+              child: Icon(
+                _rotationMode == MapRotationMode.north
+                    ? Icons.explore
+                    : _rotationMode == MapRotationMode.free
+                        ? Icons.screen_rotation
+                        : Icons.navigation,
+                color: Colors.blue,
               ),
             ),
           ),
