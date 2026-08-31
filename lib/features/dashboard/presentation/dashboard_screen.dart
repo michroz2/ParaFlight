@@ -122,9 +122,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Positioned(
             top: 120,
             right: 16,
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: Colors.white.withAlpha(220),
+            child: IconButton(
+              iconSize: 36,
               onPressed: () {
                 setState(() {
                   switch (_rotationMode) {
@@ -144,14 +143,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   }
                 });
               },
-              child: Icon(
-                _rotationMode == MapRotationMode.north
-                    ? Icons.explore
-                    : _rotationMode == MapRotationMode.free
-                        ? Icons.screen_rotation
-                        : Icons.navigation,
-                color: Colors.blue,
-              ),
+              icon: _rotationMode == MapRotationMode.north
+                  ? Transform.rotate(
+                      angle: -pi / 4,
+                      child: const Icon(Icons.explore, color: Colors.blue),
+                    )
+                  : Icon(
+                      _rotationMode == MapRotationMode.free
+                          ? Icons.screen_rotation
+                          : Icons.navigation,
+                      color: Colors.blue,
+                    ),
             ),
           ),
           // Новое: Панель управления воспроизведением
