@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'dart:math';
 
 import '../../../core/location/location_state.dart';
@@ -16,7 +16,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 } // конец класса DashboardScreen
 
-enum MapRotationMode { north, free, heading }
+enum MapRotationMode { north, heading }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final MapController _mapController = MapController();
@@ -52,13 +52,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(
-              initialCenter: const LatLng(0, 0),
+            options: const MapOptions(
+              initialCenter: LatLng(0, 0),
               initialZoom: 13.0,
               interactionOptions: InteractionOptions(
-                flags: _rotationMode == MapRotationMode.free 
-                    ? InteractiveFlag.all 
-                    : InteractiveFlag.all & ~InteractiveFlag.rotate,
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
             ),
             children: [
@@ -126,34 +124,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               iconSize: 36,
               onPressed: () {
                 setState(() {
-                  switch (_rotationMode) {
-                    case MapRotationMode.north:
-                      _rotationMode = MapRotationMode.free;
-                      break;
-                    case MapRotationMode.free:
-                      _rotationMode = MapRotationMode.heading;
-                      if (currentLocation != null) {
-                        _mapController.rotate(360.0 - currentLocation.heading);
-                      }
-                      break;
-                    case MapRotationMode.heading:
-                      _rotationMode = MapRotationMode.north;
-                      _mapController.rotate(0);
-                      break;
+                  if (_rotationMode == MapRotationMode.north) {
+                    _rotationMode = MapRotationMode.heading;
+                    if (currentLocation != null) {
+                      _mapController.rotate(360.0 - currentLocation.heading);
+                    }
+                  } else {
+                    _rotationMode = MapRotationMode.north;
+                    _mapController.rotate(0);
                   }
                 });
               },
-              icon: _rotationMode == MapRotationMode.north
-                  ? Transform.rotate(
-                      angle: -pi / 4,
-                      child: const Icon(Icons.explore, color: Colors.blue),
-                    )
-                  : Icon(
-                      _rotationMode == MapRotationMode.free
-                          ? Icons.screen_rotation
-                          : Icons.navigation,
-                      color: Colors.blue,
-                    ),
+              icon: Transform.rotate(
+                angle: _rotationMode == MapRotationMode.heading && currentLocation != null 
+                    ? -currentLocation.heading * pi / 180.0 
+                    : 0.0,
+                child: CustomPaint(
+                  size: const Size(14, 32),
+                  painter: CompassArrowPainter(),
+                ),
+              ),
             ),
           ),
           // Новое: Панель управления воспроизведением
@@ -245,4 +235,42 @@ String _formatDuration(Duration duration) {
     return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
   }
   return "$twoDigitMinutes:$twoDigitSeconds";
+}
+
+class CompassArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final redPath = Path()
+      ..moveTo(w / 2, 0)
+      ..lineTo(w, h / 2)
+      ..lineTo(0, h / 2)
+      ..close();
+    canvas.drawPath(redPath, Paint()..color = Colors.red);
+
+    final whitePath = Path()
+      ..moveTo(w / 2, h)
+      ..lineTo(w, h / 2)
+      ..lineTo(0, h / 2)
+      ..close();
+    canvas.drawPath(whitePath, Paint()..color = Colors.white);
+
+    final borderPath = Path()
+      ..moveTo(w / 2, 0)
+      ..lineTo(w, h / 2)
+      ..lineTo(w / 2, h)
+      ..lineTo(0, h / 2)
+      ..close();
+    canvas.drawPath(
+        borderPath,
+        Paint()
+          ..color = Colors.grey.shade800
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
