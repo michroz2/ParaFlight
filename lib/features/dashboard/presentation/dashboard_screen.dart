@@ -1,14 +1,16 @@
-// Версия: 0.1.2 | Цель: Главный экран панели приборов
+// Версия: 0.4.0 | Цель: Главный экран панели приборов (Интеграция скрытого Config UI)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'dart:async';
 import 'dart:math';
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../wind/presentation/wind_provider.dart';
+import '../../settings/presentation/settings_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -22,6 +24,29 @@ enum MapRotationMode { north, heading }
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final MapController _mapController = MapController();
   MapRotationMode _rotationMode = MapRotationMode.north;
+
+  bool _showSettingsBar = false;
+  Timer? _hideTimer;
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  } // конец метода dispose
+
+  void _onMapLongPress(TapPosition tapPosition, LatLng point) {
+    setState(() {
+      _showSettingsBar = true;
+    });
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showSettingsBar = false;
+        });
+      }
+    });
+  } // конец метода _onMapLongPress
 
   @override
   Widget build(BuildContext context) {
@@ -49,31 +74,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }); // конец замыкания listen
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ParaFlight'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Сбросить симуляцию (и перечитать GPX/Config)',
-            onPressed: () {
-              // Инвалидируем провайдеры для полного сброса стейта
-              ref.invalidate(windProvider);
-              ref.invalidate(playbackProvider);
-              ref.invalidate(gpxPointsProvider);
-            },
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(0, 0),
+            options: MapOptions(
+              initialCenter: const LatLng(0, 0),
               initialZoom: 13.0,
-              interactionOptions: InteractionOptions(
+              interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
+              onLongPress: _onMapLongPress,
             ),
             children: [
               TileLayer(
@@ -279,8 +290,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
+          // Новое: Скрытый бар настроек
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: _showSettingsBar ? 0 : -100, // Увеличил отступ, чтобы полностью скрыть за SafeArea
+            left: 0,
+            right: 0,
+            child: Material(
+              color: Colors.amber,
+              elevation: 4,
+              child: SafeArea(
+                bottom: false,
+                child: SizedBox(
+                  height: 60,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      const Text(
+                        'ParaFlight',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        iconSize: 32,
+                        icon: const Icon(Icons.settings, color: Colors.black87),
+                        onPressed: () {
+                          _hideTimer?.cancel();
+                          setState(() {
+                            _showSettingsBar = false;
+                          });
+                          // Переход в настройки
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                          );
+                        }, // конец onPressed
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ), // конец Row
+                ), // конец SizedBox
+              ), // конец SafeArea
+            ), // конец Material
+          ), // конец AnimatedPositioned
         ],
-      ),
+      ), // конец Stack
     );
   } // конец метода build
 } // конец класса _DashboardScreenState
