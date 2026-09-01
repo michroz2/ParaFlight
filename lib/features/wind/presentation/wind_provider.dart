@@ -16,14 +16,23 @@ final windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>
   );
   
   // Подписываемся на изменения геолокации
-  ref.listen(locationProvider, (previous, location) {
+  ref.listen(locationProvider, (previous, asyncLocation) {
+    final location = asyncLocation.valueOrNull;
     if (location != null) {
       notifier.updateLocation(
         location.timestamp,
         location.speed,
         location.heading,
+        ref.read(dataSourceProvider) == DataSource.simulator,
       );
     }
+  });
+
+  // Подписываемся на смену источника данных
+  ref.listen(dataSourceProvider, (previous, next) {
+    if (previous != next) {
+      notifier.clear();
+    } // конец if
   });
 
   return notifier;
@@ -36,15 +45,20 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
   DateTime? _lastTimestamp;
 
   WindNotifier({
-    required WindPipeline pipeline,
+    required this._pipeline,
     required List<LocationEntity> Function() getPoints,
     required int Function() getCurrentIndex,
-  })  : _pipeline = pipeline,
-        _getPoints = getPoints,
+  })  : _getPoints = getPoints,
         _getCurrentIndex = getCurrentIndex,
         super(null);
 
-  void updateLocation(DateTime timestamp, double speed, double heading) {
+  void clear() {
+    _pipeline.reset();
+    _lastTimestamp = null;
+    state = null;
+  } // конец метода clear
+
+  void updateLocation(DateTime timestamp, double speed, double heading, bool isSimulator) {
     bool isJump = false;
     if (_lastTimestamp != null) {
       final diff = timestamp.difference(_lastTimestamp!).inMilliseconds;
@@ -58,34 +72,33 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
     if (isJump) {
       _pipeline.reset();
       
-      // Восстанавливаем буфер из истории при перемотке
-      final allPoints = _getPoints();
-      final currentIndex = _getCurrentIndex();
-      
       WindCalculationResult? latestResult;
-      if (allPoints.isNotEmpty && currentIndex >= 0 && currentIndex < allPoints.length) {
-        final endTime = allPoints[currentIndex].timestamp;
-        final startTime = endTime.subtract(Duration(seconds: _pipeline.config.windowSizeSec.toInt()));
-        
-        // Быстро прогоняем исторические точки через конвейер
-        for (int i = 0; i <= currentIndex; i++) {
-          final p = allPoints[i];
-          if (p.timestamp.isAfter(startTime) || p.timestamp.isAtSameMomentAs(startTime)) {
-            // pipeline вернет null или результат, сохраняем последний валидный
-            final res = _pipeline.processLocation(p.timestamp, p.speed, p.heading);
-            if (res != null) latestResult = res;
-          }
-        }
-      }
       
-      state = latestResult; // Обновляем экран сразу вычисленным ветром из истории
+      // Восстанавливаем буфер из истории при перемотке ТОЛЬКО в режиме симулятора
+      if (isSimulator) {
+        final allPoints = _getPoints();
+        final currentIndex = _getCurrentIndex();
+        
+        if (allPoints.isNotEmpty && currentIndex >= 0 && currentIndex < allPoints.length) {
+          final endTime = allPoints[currentIndex].timestamp;
+          final startTime = endTime.subtract(Duration(seconds: _pipeline.config.windowSizeSec.toInt()));
+          
+          for (int i = 0; i <= currentIndex; i++) {
+            final p = allPoints[i];
+            if (p.timestamp.isAfter(startTime) || p.timestamp.isAtSameMomentAs(startTime)) {
+              final res = _pipeline.processLocation(p.timestamp, p.speed, p.heading);
+              if (res != null) latestResult = res;
+            } // конец if
+          } // конец for
+        } // конец if
+      } // конец if
+      
+      state = latestResult;
     } else {
       final result = _pipeline.processLocation(timestamp, speed, heading);
-      
-      // Если pipeline вернул новый результат (маневр валиден), обновляем state
       if (result != null) {
         state = result;
       }
-    }
-  }
-}
+    } // конец if-else
+  } // конец метода updateLocation
+} // конец класса WindNotifier

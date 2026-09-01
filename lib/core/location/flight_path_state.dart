@@ -4,8 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_state.dart';
 
-// Новое: реактивный срез пути
+// Новое: Класс для накопления точек реального GPS
+class RealGpsTrackNotifier extends Notifier<List<LatLng>> {
+  @override
+  List<LatLng> build() {
+    // Подписываемся на локацию, добавляем точки только в режиме GPS
+    ref.listen(locationProvider, (previous, asyncLocation) {
+      final loc = asyncLocation.valueOrNull;
+      if (loc != null && ref.read(dataSourceProvider) == DataSource.internalGps) {
+        state = [...state, LatLng(loc.latitude, loc.longitude)];
+      } // конец if
+    });
+    return [];
+  } // конец метода build
+} // конец класса RealGpsTrackNotifier
+
+final realGpsTrackProvider = NotifierProvider<RealGpsTrackNotifier, List<LatLng>>(RealGpsTrackNotifier.new);
+
+// Изменение: Переключатель трека между симулятором и GPS
 final flightPathProvider = Provider<List<LatLng>>((ref) {
+  final dataSource = ref.watch(dataSourceProvider);
+  
+  if (dataSource == DataSource.internalGps) {
+    return ref.watch(realGpsTrackProvider);
+  } // конец if
+
+  // Логика симулятора
   final pointsFuture = ref.watch(gpxPointsProvider);
   final points = pointsFuture.valueOrNull;
   

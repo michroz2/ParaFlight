@@ -51,8 +51,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final track = ref.watch(flightPathProvider);
-    // Изменение: использование locationProvider вместо locationStreamProvider
-    final currentLocation = ref.watch(locationProvider);
+    // Изменение: использование locationProvider с AsyncValue
+    final asyncLocation = ref.watch(locationProvider);
+    final currentLocation = asyncLocation.valueOrNull;
+    final locationError = asyncLocation.hasError ? asyncLocation.error.toString() : null;
+    final dataSource = ref.watch(dataSourceProvider);
     
     // Новое: состояние и нотифайер плеера
     final playbackState = ref.watch(playbackProvider);
@@ -61,7 +64,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // ВЕТЕР
     final wind = ref.watch(windProvider);
 
-    ref.listen(locationProvider, (previous, next) {
+    ref.listen(locationProvider, (previous, nextAsync) {
+      final next = nextAsync.valueOrNull;
       if (next != null) {
         _mapController.move(
           LatLng(next.latitude, next.longitude),
@@ -101,13 +105,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
-              if (track.isNotEmpty)
+              if (currentLocation != null)
                 MarkerLayer(
                   markers: [
                     Marker(
-                      point: track.last,
+                      point: LatLng(currentLocation.latitude, currentLocation.longitude),
                       child: Transform.rotate(
-                        angle: currentLocation != null ? currentLocation.heading * pi / 180.0 : 0.0,
+                        angle: currentLocation.heading * pi / 180.0,
                         child: const Icon(
                           Icons.flight,
                           color: Colors.red,
@@ -131,15 +135,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: currentLocation != null
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Text('Высота: ${currentLocation.altitude.toStringAsFixed(1)} м'),
-                          Text('Скорость: ${currentLocation.speed.toStringAsFixed(1)} м/с'),
-                          Text('Курс: ${currentLocation.heading.toStringAsFixed(1)}°'),
-                        ],
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Text('Высота: ${currentLocation.altitude.toStringAsFixed(1)} м'),
+                            const SizedBox(width: 16),
+                            Text('Скорость: ${currentLocation.speed.toStringAsFixed(1)} м/с'),
+                            const SizedBox(width: 16),
+                            Text('Курс: ${currentLocation.heading.toStringAsFixed(1)}°'),
+                          ],
+                        ),
                       )
-                    : const Center(child: Text('Ожидание данных...')),
+                    : Center(
+                        child: Text(
+                          locationError != null 
+                              ? 'Ошибка GPS: $locationError' 
+                              : 'Ожидание данных...',
+                          style: TextStyle(
+                            color: locationError != null ? Colors.red : Colors.black87,
+                            fontWeight: locationError != null ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ), // конец Center
               ),
             ),
           ),
@@ -216,7 +235,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
           // Новое: Панель управления воспроизведением
-          Positioned(
+          if (dataSource == DataSource.simulator)
+            Positioned(
             bottom: 20,
             left: 16,
             right: 16,

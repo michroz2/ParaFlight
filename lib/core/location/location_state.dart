@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:geolocator/geolocator.dart';
 
 import 'location_entity.dart';
 import 'gpx_parser.dart';
@@ -29,9 +30,61 @@ final gpxPointsProvider = FutureProvider<List<LocationEntity>>((ref) async {
   return points;
 }); // конец gpxPointsProvider
 
-// Изменение: удален StreamProvider
-// Новое: Провайдер текущей локации из плеера
-final locationProvider = Provider<LocationEntity?>((ref) {
-  return ref.watch(playbackProvider).currentLocation;
-}); // конец locationProvider
+// Новое: Перечисление источников данных
+enum DataSource { simulator, internalGps }
 
+// Новое: Провайдер текущего источника
+final dataSourceProvider = StateProvider<DataSource>((ref) => DataSource.simulator);
+
+// Новое: Провайдер реального GPS через Geolocator
+final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
+  bool serviceEnabled;
+  LocationPermission permission;
+
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    throw Exception('Службы геолокации отключены.');
+  }
+
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      throw Exception('Разрешения на геолокацию отклонены.');
+    }
+  } // конец if
+  
+  if (permission == LocationPermission.deniedForever) {
+    throw Exception('Разрешения на геолокацию отклонены навсегда.');
+  } // конец if
+
+  yield* Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    ),
+  ).map((Position position) {
+    return LocationEntity(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      altitude: position.altitude,
+      speed: position.speed, // в м/с
+      heading: position.heading, // в градусах
+      timestamp: position.timestamp ?? DateTime.now(),
+    );
+  }); // конец map
+}); // конец realGpsProvider
+
+// Изменение: locationProvider теперь возвращает AsyncValue, чтобы UI видел ошибки (например, если нет прав)
+final locationProvider = Provider<AsyncValue<LocationEntity?>>((ref) {
+  final dataSource = ref.watch(dataSourceProvider);
+  
+  if (dataSource == DataSource.internalGps) {
+    // Пробрасываем состояния загрузки и ошибок от Geolocator
+    return ref.watch(realGpsProvider);
+  } else {
+    // Симулятор всегда отдает синхронные данные
+    final loc = ref.watch(playbackProvider).currentLocation;
+    return AsyncValue.data(loc);
+  } // конец if
+}); // конец locationProvider
