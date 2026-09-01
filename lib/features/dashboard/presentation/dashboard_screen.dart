@@ -8,6 +8,7 @@ import 'dart:math';
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
+import '../../wind/presentation/wind_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -31,6 +32,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Новое: состояние и нотифайер плеера
     final playbackState = ref.watch(playbackProvider);
     final playbackNotifier = ref.read(playbackProvider.notifier);
+    
+    // ВЕТЕР
+    final wind = ref.watch(windProvider);
 
     ref.listen(locationProvider, (previous, next) {
       if (next != null) {
@@ -47,6 +51,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ParaFlight'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Сбросить симуляцию (и перечитать GPX/Config)',
+            onPressed: () {
+              // Инвалидируем провайдеры для полного сброса стейта
+              ref.invalidate(windProvider);
+              ref.invalidate(playbackProvider);
+              ref.invalidate(gpxPointsProvider);
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -116,6 +132,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
+          // Карточка Ветра и Airspeed
+          if (wind != null)
+            Positioned(
+              top: 100, // Под основной карточкой
+              left: 16,
+              child: Card(
+                color: Colors.white.withAlpha(220),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.air, size: 16, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Ветер: ${wind.windSpeed.toStringAsFixed(1)} м/с',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Transform.rotate(
+                            angle: (wind.windDirection + 180) * pi / 180.0,
+                            child: const Icon(Icons.arrow_upward, size: 16, color: Colors.blue),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('Направление: ${wind.windDirection.toStringAsFixed(0)}°'),
+                        ],
+                      ),
+                      Text('Airspeed: ${wind.airspeed.toStringAsFixed(1)} м/с'),
+                      Text('RMSE: ${wind.rmse.toStringAsFixed(2)} м/с', style: const TextStyle(fontSize: 14, color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // Новое: Кнопка компаса
           Positioned(
             top: 120,

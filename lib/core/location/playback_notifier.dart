@@ -8,6 +8,7 @@ import 'playback_state.dart';
 // Новое: Notifier для управления воспроизведением
 class PlaybackNotifier extends Notifier<PlaybackState> {
   List<LocationEntity> _points = [];
+  List<LocationEntity> get points => _points;
   int _currentIndex = 0;
   Timer? _timer;
 
