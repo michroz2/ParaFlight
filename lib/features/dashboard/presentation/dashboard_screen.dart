@@ -12,6 +12,7 @@ import '../../../core/location/flight_path_state.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import 'widgets/instrument_block.dart';
+import 'widgets/wind_circle_painter.dart'; // Новое: компас ветра
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -51,6 +52,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Новое: размеры экрана для круга ветра
+    final screenSize = MediaQuery.of(context).size;
+    final windCircleDiameter = min(screenSize.width, screenSize.height) / 2.0;
+
     final track = ref.watch(flightPathProvider);
     // Изменение: использование locationProvider с AsyncValue
     final asyncLocation = ref.watch(locationProvider);
@@ -109,6 +114,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (currentLocation != null)
                 MarkerLayer(
                   markers: [
+                    // Новое: Маркер с кругом ветра
+                    if (wind != null)
+                      Marker(
+                        point: LatLng(currentLocation.latitude, currentLocation.longitude),
+                        width: windCircleDiameter + 100, // с запасом для текста
+                        height: windCircleDiameter + 100,
+                        child: CustomPaint(
+                          painter: WindCirclePainter(
+                            windDirection: wind.windDirection,
+                            windSpeed: wind.windSpeed,
+                            mapRotation: _rotationMode == MapRotationMode.heading ? currentLocation.heading : 0.0,
+                            diameter: windCircleDiameter,
+                          ),
+                        ),
+                      ),
+                    // Маркер пилота (самолетик)
                     Marker(
                       point: LatLng(currentLocation.latitude, currentLocation.longitude),
                       child: Transform.rotate(
@@ -212,7 +233,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Карточка Ветра и Airspeed
           if (wind != null)
             Positioned(
-              top: 250, // Изменение: Сдвинуто вниз под новые блоки HUD
+              bottom: dataSource == DataSource.simulator ? 140 : 20, // Изменение: перенесено в левый нижний угол, с учетом плеера
               left: 16,
               child: Card(
                 color: Colors.white.withAlpha(220),
@@ -253,7 +274,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           // Новое: Кнопка компаса
           Positioned(
-            top: 250, // Изменение: Сдвинуто вниз под новые блоки HUD
+            bottom: dataSource == DataSource.simulator ? 140 : 20, // Изменение: перенесено в правый нижний угол
             right: 16,
             child: IconButton(
               iconSize: 36,
