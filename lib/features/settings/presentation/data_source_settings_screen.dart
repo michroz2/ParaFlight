@@ -27,7 +27,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
             groupValue: currentSource,
             onChanged: (DataSource? value) {
               if (value != null) {
-                ref.read(dataSourceProvider.notifier).state = value;
+                ref.read(dataSourceProvider.notifier).setSource(value);
               } // конец if
             }, // конец onChanged
           ), // конец RadioListTile
@@ -40,7 +40,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
             groupValue: currentSource,
             onChanged: (DataSource? value) {
               if (value != null) {
-                ref.read(dataSourceProvider.notifier).state = value;
+                ref.read(dataSourceProvider.notifier).setSource(value);
               } // конец if
             }, // конец onChanged
           ), // конец RadioListTile

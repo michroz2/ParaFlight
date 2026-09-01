@@ -3,6 +3,14 @@ import 'package:xml/xml.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_entity.dart';
 
+// Новое: Глобальная функция для запуска парсинга в фоновом Isolate (через compute)
+List<LocationEntity> parseGpxInIsolate(Map<String, dynamic> args) {
+  return GpxParser.parse(
+    args['xmlString'] as String, 
+    smoothingWindow: args['smoothingWindow'] as int,
+  );
+} // конец parseGpxInIsolate
+
 class GpxParser {
   static List<LocationEntity> parse(String xmlString, {int smoothingWindow = 2}) {
     final document = XmlDocument.parse(xmlString);

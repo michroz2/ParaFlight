@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0] - 2026-09-01 (MVP Release)
+### Added
+- Персистентность настроек (SharedPreferences): сохранение источника данных (GPS/Симулятор), ориентации дисплея и режима Wakelock.
+- Корректный выход из приложения (`SystemNavigator.pop`) через меню настроек.
+- Официальное достижение статуса MVP (Minimum Viable Product).
+
 ## [0.5.0] - 2026-09-01
 ### Added
 - Аппаратная интеграция GPS (F-03): пакет `geolocator`, Android-пермиссии (вкл. Foreground Location).

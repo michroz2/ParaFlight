@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geolocator/geolocator.dart';
 
+import 'package:flutter/foundation.dart'; // для compute
+
+import '../preferences/preferences_provider.dart';
+
 import 'location_entity.dart';
 import 'gpx_parser.dart';
 
@@ -22,7 +26,12 @@ final gpxPointsProvider = FutureProvider<List<LocationEntity>>((ref) async {
   // Загружаем файл с явным отключением кэширования
   final xmlString = await rootBundle.loadString('assets/mock_flight.gpx', cache: false);
   const config = WindConfig();
-  final points = GpxParser.parse(xmlString, smoothingWindow: config.gpxSmoothingWindow);
+  
+  // Изменение: Выносим парсинг в отдельный Isolate (фоновый поток), чтобы не блочить UI
+  final points = await compute(parseGpxInIsolate, {
+    'xmlString': xmlString,
+    'smoothingWindow': config.gpxSmoothingWindow,
+  });
   // Изменение: инициализируем плеер
   Future.microtask(() {
     ref.read(playbackProvider.notifier).init(points);
@@ -33,8 +42,26 @@ final gpxPointsProvider = FutureProvider<List<LocationEntity>>((ref) async {
 // Новое: Перечисление источников данных
 enum DataSource { simulator, internalGps }
 
-// Новое: Провайдер текущего источника
-final dataSourceProvider = StateProvider<DataSource>((ref) => DataSource.simulator);
+// Новое: Провайдер текущего источника с персистентностью
+class DataSourceNotifier extends StateNotifier<DataSource> {
+  final Ref ref;
+
+  DataSourceNotifier(this.ref) : super(_parse(ref.read(sharedPreferencesProvider).getString('data_source'))) {}
+
+  static DataSource _parse(String? value) {
+    if (value == DataSource.internalGps.name) return DataSource.internalGps;
+    return DataSource.simulator;
+  } // конец метода _parse
+
+  void setSource(DataSource source) {
+    state = source;
+    ref.read(sharedPreferencesProvider).setString('data_source', source.name);
+  } // конец метода setSource
+} // конец класса DataSourceNotifier
+
+final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>((ref) {
+  return DataSourceNotifier(ref);
+}); // конец dataSourceProvider
 
 // Новое: Провайдер реального GPS через Geolocator
 final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
