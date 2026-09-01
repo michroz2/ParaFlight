@@ -11,6 +11,7 @@ import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
+import 'widgets/instrument_block.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -123,49 +124,95 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
             ],
           ),
-          Positioned(
-            top: 40,
-            left: 16,
-            right: 16,
-            child: Card(
-              color: Colors.white.withAlpha(220),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: currentLocation != null
-                    ? FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text('Высота: ${currentLocation.altitude.toStringAsFixed(1)} м'),
-                            const SizedBox(width: 16),
-                            Text('Скорость: ${currentLocation.speed.toStringAsFixed(1)} м/с'),
-                            const SizedBox(width: 16),
-                            Text('Курс: ${currentLocation.heading.toStringAsFixed(1)}°'),
-                          ],
+          // Новое: HUD Слой поверх карты
+          SafeArea(
+            child: Padding(
+              // Изменение: Уменьшены поля от края экрана в 2 раза (было 8.0)
+              padding: const EdgeInsets.all(4.0),
+              child: Stack(
+                children: [
+                  // Левая колонка
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InstrumentBlock(
+                          title: 'SOG',
+                          unit: 'km/h',
+                          value: currentLocation != null ? (currentLocation.speed * 3.6).toStringAsFixed(1) : '--.-',
                         ),
-                      )
-                    : Center(
-                        child: Text(
-                          locationError != null 
-                              ? 'Ошибка GPS: $locationError' 
-                              : 'Ожидание данных...',
-                          style: TextStyle(
-                            color: locationError != null ? Colors.red : Colors.black87,
-                            fontWeight: locationError != null ? FontWeight.bold : FontWeight.normal,
-                          ),
+                        const InstrumentBlock(
+                          title: 'FLT',
+                          unit: 'time',
+                          value: '00:00',
                         ),
-                      ), // конец Center
-              ),
-            ),
-          ),
+                        const InstrumentBlock(
+                          title: 'DIST',
+                          unit: 'km',
+                          value: '0.0',
+                        ),
+                      ],
+                    ), // конец Column
+                  ), // конец Align
+                  // Правая колонка
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        InstrumentBlock(
+                          title: 'ALT',
+                          unit: 'm',
+                          value: currentLocation != null ? currentLocation.altitude.toStringAsFixed(0) : '---',
+                        ),
+                        const InstrumentBlock(
+                          title: 'Vz',
+                          unit: 'm/s',
+                          value: '+0.0',
+                        ),
+                        const InstrumentBlock(
+                          title: 'FUEL',
+                          unit: 'L',
+                          value: '--.-',
+                        ),
+                      ],
+                    ), // конец Column
+                  ), // конец Align
+                  // Центр
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InstrumentBlock(
+                          title: 'BRG',
+                          unit: '°',
+                          value: currentLocation != null ? currentLocation.heading.toStringAsFixed(0) : '---',
+                        ),
+                        if (locationError != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(8),
+                            color: Colors.red.withAlpha(200),
+                            child: Text(
+                              'Ошибка: $locationError',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ), // конец Container
+                      ],
+                    ), // конец Column
+                  ), // конец Align
+                ],
+              ), // конец Stack
+            ), // конец Padding
+          ), // конец SafeArea
           // Карточка Ветра и Airspeed
           if (wind != null)
             Positioned(
-              top: 100, // Под основной карточкой
+              top: 250, // Изменение: Сдвинуто вниз под новые блоки HUD
               left: 16,
               child: Card(
                 color: Colors.white.withAlpha(220),
@@ -206,7 +253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           // Новое: Кнопка компаса
           Positioned(
-            top: 120,
+            top: 250, // Изменение: Сдвинуто вниз под новые блоки HUD
             right: 16,
             child: IconButton(
               iconSize: 36,
