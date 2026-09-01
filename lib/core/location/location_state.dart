@@ -3,12 +3,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geolocator/geolocator.dart';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart'; // для compute
 
 import '../preferences/preferences_provider.dart';
 
 import 'location_entity.dart';
+import 'gpx_parse_state.dart';
 import 'gpx_parser.dart';
 
 import '../../features/wind/domain/wind_config.dart';
@@ -22,22 +24,34 @@ final playbackProvider = NotifierProvider<PlaybackNotifier, PlaybackState>(() {
   return PlaybackNotifier();
 }); // конец playbackProvider
 
-final gpxPointsProvider = FutureProvider<List<LocationEntity>>((ref) async {
-  // Загружаем файл с явным отключением кэширования
+final gpxPointsProvider = StreamProvider<GpxParseState>((ref) async* {
   final xmlString = await rootBundle.loadString('assets/mock_flight.gpx', cache: false);
   const config = WindConfig();
   
-  // Изменение: Выносим парсинг в отдельный Isolate (фоновый поток), чтобы не блочить UI
-  final points = await compute(parseGpxInIsolate, {
+  final receivePort = ReceivePort();
+  
+  await Isolate.spawn(parseGpxStreamingIsolate, {
+    'sendPort': receivePort.sendPort,
     'xmlString': xmlString,
     'smoothingWindow': config.gpxSmoothingWindow,
   });
-  // Изменение: инициализируем плеер
-  Future.microtask(() {
-    ref.read(playbackProvider.notifier).init(points);
-  }); // конец микротаска
-  return points;
-}); // конец gpxPointsProvider
+
+  await for (final message in receivePort) {
+    if (message is double) {
+      yield GpxParseState(progress: message);
+    } else if (message is List<LocationEntity>) {
+      yield GpxParseState(progress: 1.0, points: message, isDone: true);
+      Future.microtask(() {
+        ref.read(playbackProvider.notifier).init(message);
+      });
+      receivePort.close();
+      break;
+    } else if (message is Exception || message is Error || message is String) {
+      receivePort.close();
+      throw Exception(message.toString());
+    }
+  }
+});
 
 // Новое: Перечисление источников данных
 enum DataSource { simulator, internalGps }
@@ -107,10 +121,12 @@ final locationProvider = Provider<AsyncValue<LocationEntity?>>((ref) {
   final dataSource = ref.watch(dataSourceProvider);
   
   if (dataSource == DataSource.internalGps) {
-    // Пробрасываем состояния загрузки и ошибок от Geolocator
     return ref.watch(realGpsProvider);
   } else {
-    // Симулятор всегда отдает синхронные данные
+    final gpxState = ref.watch(gpxPointsProvider);
+    if (gpxState.hasError) {
+      return AsyncValue.error(gpxState.error!, gpxState.stackTrace!);
+    }
     final loc = ref.watch(playbackProvider).currentLocation;
     return AsyncValue.data(loc);
   } // конец if

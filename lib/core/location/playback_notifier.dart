@@ -24,6 +24,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     if (_points.isNotEmpty) {
       final totalDuration = _points.last.timestamp.difference(_points.first.timestamp);
       state = state.copyWith(
+        currentLocation: _points.first,
         totalDuration: totalDuration,
         currentDuration: Duration.zero,
       );

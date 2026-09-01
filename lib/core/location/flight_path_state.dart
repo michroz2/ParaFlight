@@ -30,12 +30,14 @@ final flightPathProvider = Provider<List<LatLng>>((ref) {
   } // конец if
 
   // Логика симулятора
-  final pointsFuture = ref.watch(gpxPointsProvider);
-  final points = pointsFuture.valueOrNull;
+  final gpxStateAsync = ref.watch(gpxPointsProvider);
+  final gpxState = gpxStateAsync.valueOrNull;
   
-  if (points == null || points.isEmpty) {
+  if (gpxState == null || gpxState.points == null || gpxState.points!.isEmpty) {
     return [];
   } // конец if
+  
+  final points = gpxState.points!;
   
   final currentIndex = ref.watch(playbackProvider.select((s) => s.currentIndex));
   

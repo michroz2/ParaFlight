@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Импорт будущих экранов категорий
 import 'data_source_settings_screen.dart';
 import 'screen_settings_screen.dart';
+import 'map_settings_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -44,6 +45,19 @@ class SettingsScreen extends ConsumerWidget {
           ), // конец ListTile
           const Divider(),
           // Новое: Элемент перехода к настройкам экрана
+          ListTile(
+            leading: const Icon(Icons.map),
+            title: const Text('Управление картой'),
+            subtitle: const Text('Панель управления и масштаб'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const MapSettingsScreen()),
+              );
+            }, // конец onTap
+          ), // конец ListTile
+          const Divider(),
+          // Элемент перехода к настройкам экрана
           ListTile(
             leading: const Icon(Icons.display_settings),
             title: const Text('Экран'),

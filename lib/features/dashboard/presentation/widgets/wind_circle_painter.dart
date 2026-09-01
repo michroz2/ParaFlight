@@ -1,4 +1,4 @@
-// Версия: 0.1.0 | Цель: Отрисовка круга ветра, стрелки и значения (CustomPainter)
+﻿// Версия: 0.1.0 | Цель: Отрисовка круга ветра с радарным масштабом
 
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -8,12 +8,14 @@ class WindCirclePainter extends CustomPainter {
   final double windSpeed;
   final double mapRotation;
   final double diameter;
+  final String scaleText; // Новое: Текст масштаба
 
   WindCirclePainter({
     required this.windDirection,
     required this.windSpeed,
     required this.mapRotation,
     required this.diameter,
+    required this.scaleText,
   });
 
   @override
@@ -21,9 +23,9 @@ class WindCirclePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = diameter / 2;
 
-    // 1. Отрисовка пунктирного круга (еле видного)
+    // 1. Отрисовка пунктирного круга
     final circlePaint = Paint()
-      ..color = Colors.black.withAlpha(80) // Темно-серый полупрозрачный
+      ..color = Colors.black.withAlpha(80)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -45,19 +47,51 @@ class WindCirclePainter extends CustomPainter {
       );
     } // конец for
 
-    // 2. Отрисовка стрелки (указывает ОТКУДА дует ветер, направлена в центр)
-    // Ветер дует из windDirection. Угол 0 - это Север (вверх, -PI/2 на Canvas).
+    // 2. Радарная шкала масштаба (влево)
+    final scalePaint = Paint()
+      ..color = Colors.black.withAlpha(80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    
+    // Рисуем пунктир от центра влево (до круга)
+    double currentX = center.dx;
+    final double scaleDashWidth = 4.0;
+    final double scaleDashSpace = 4.0;
+    while (currentX > center.dx - radius) {
+      canvas.drawLine(
+        Offset(currentX, center.dy), 
+        Offset(max(center.dx - radius, currentX - scaleDashWidth), center.dy), 
+        scalePaint
+      );
+      currentX -= (scaleDashWidth + scaleDashSpace);
+    }
+
+    // Текст масштаба ближе к кругу
+    final scaleSpan = TextSpan(
+      text: scaleText,
+      style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold),
+    );
+    final scaleTextPainter = TextPainter(
+      text: scaleSpan,
+      textDirection: TextDirection.ltr,
+    );
+    scaleTextPainter.layout();
+    
+    // Размещение текста: над линией, ближе к краю круга
+    final scaleTextX = center.dx - radius + 4.0;
+    final scaleTextY = center.dy - scaleTextPainter.height - 2.0;
+    scaleTextPainter.paint(canvas, Offset(scaleTextX, scaleTextY));
+
+    // 3. Отрисовка стрелки ветра
     final screenAngle = (windDirection - mapRotation) * pi / 180.0;
     final drawAngle = screenAngle - pi / 2;
 
-    // Носик стрелки касается круга снаружи
     final tipX = center.dx + radius * cos(drawAngle);
     final tipY = center.dy + radius * sin(drawAngle);
 
     final arrowLength = 12.0;
     final arrowWidth = 10.0;
 
-    // Задняя часть стрелки
     final backX = center.dx + (radius + arrowLength) * cos(drawAngle);
     final backY = center.dy + (radius + arrowLength) * sin(drawAngle);
 
@@ -73,9 +107,9 @@ class WindCirclePainter extends CustomPainter {
       ..lineTo(p2X, p2Y)
       ..close();
 
-    canvas.drawPath(arrowPath, Paint()..color = Colors.blueAccent); // Цвет стрелки ветра
+    canvas.drawPath(arrowPath, Paint()..color = Colors.blueAccent);
 
-    // 3. Отрисовка лэйбла (значение ветра в м/с)
+    // 4. Отрисовка лэйбла ветра
     final textStr = windSpeed.toStringAsFixed(1);
     final textSpan = TextSpan(
       text: textStr,
@@ -87,24 +121,21 @@ class WindCirclePainter extends CustomPainter {
     );
     textPainter.layout();
 
-    // Центр лэйбла отодвинут от задней части стрелки
     final textDist = radius + arrowLength + 16.0; 
     final textCenterX = center.dx + textDist * cos(drawAngle);
     final textCenterY = center.dy + textDist * sin(drawAngle);
 
     final textRect = Rect.fromCenter(
       center: Offset(textCenterX, textCenterY),
-      width: textPainter.width + 6, // Изменение: уменьшили поля в 2 раза (было 12)
-      height: textPainter.height + 4, // Изменение: уменьшили поля в 2 раза (было 8)
+      width: textPainter.width + 6,
+      height: textPainter.height + 4,
     );
 
-    // Темно-серый фон лэйбла
     canvas.drawRRect(
       RRect.fromRectAndRadius(textRect, const Radius.circular(6.0)),
       Paint()..color = const Color(0xCC333333),
     );
 
-    // Отрисовка текста
     textPainter.paint(
       canvas,
       Offset(textCenterX - textPainter.width / 2, textCenterY - textPainter.height / 2),
@@ -116,6 +147,7 @@ class WindCirclePainter extends CustomPainter {
     return oldDelegate.windDirection != windDirection ||
            oldDelegate.windSpeed != windSpeed ||
            oldDelegate.mapRotation != mapRotation ||
-           oldDelegate.diameter != diameter;
+           oldDelegate.diameter != diameter ||
+           oldDelegate.scaleText != scaleText;
   } // конец метода shouldRepaint
 } // конец класса WindCirclePainter

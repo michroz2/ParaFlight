@@ -1,4 +1,4 @@
-// Версия: 0.4.0 | Цель: Главный экран панели приборов (Интеграция скрытого Config UI)
+// Версия: 0.5.0 | Цель: Главный экран с линейными контролами и умным компасом ветра
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,77 +11,134 @@ import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../settings/application/map_settings_provider.dart';
 import 'widgets/instrument_block.dart';
-import 'widgets/wind_circle_painter.dart'; // Новое: компас ветра
+import 'widgets/wind_circle_painter.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
-} // конец класса DashboardScreen
-
-enum MapRotationMode { north, heading }
+}
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final MapController _mapController = MapController();
-  MapRotationMode _rotationMode = MapRotationMode.north;
-
-  bool _showSettingsBar = false;
+  MapRotationMode? _rotationMode;
+  
+  bool _showOverlays = false;
   Timer? _hideTimer;
+  
+  bool _isFreePanMode = false;
+  bool _isTrackingPilot = true;
+  Timer? _autoReturnTimer;
 
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _autoReturnTimer?.cancel();
     super.dispose();
-  } // конец метода dispose
+  }
 
-  void _onMapLongPress(TapPosition tapPosition, LatLng point) {
-    setState(() {
-      _showSettingsBar = true;
-    });
+  void _resetUiTimer() {
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _showSettingsBar = false;
-        });
-      }
-    });
-  } // конец метода _onMapLongPress
+    if (_showOverlays) {
+      final uiHideSeconds = ref.read(mapSettingsProvider).uiAutoHideSeconds;
+      _hideTimer = Timer(Duration(seconds: uiHideSeconds), () {
+        if (mounted) setState(() => _showOverlays = false);
+      });
+    }
+  }
+
+  void _onMapTap(TapPosition tapPosition, LatLng point) {
+    setState(() => _showOverlays = !_showOverlays);
+    _resetUiTimer();
+  }
+
+  Widget _buildControlButton(IconData icon, VoidCallback onPressed, {bool isActive = false}) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: const Color(0xDD333333),
+          border: Border.all(color: isActive ? Colors.blue : Colors.white60, width: 2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(icon, color: isActive ? Colors.blue : Colors.white, size: 36),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Новое: размеры экрана для круга ветра
-    final screenSize = MediaQuery.of(context).size;
-    final windCircleDiameter = min(screenSize.width, screenSize.height) / 2.0;
+    final mapSettings = ref.watch(mapSettingsProvider);
+    if (_rotationMode == null) {
+      _rotationMode = mapSettings.defaultRotationMode;
+    }
 
+    final screenSize = MediaQuery.of(context).size;
     final track = ref.watch(flightPathProvider);
-    // Изменение: использование locationProvider с AsyncValue
     final asyncLocation = ref.watch(locationProvider);
+    final gpxStateAsync = ref.watch(gpxPointsProvider);
+    final gpxState = gpxStateAsync.valueOrNull;
     final currentLocation = asyncLocation.valueOrNull;
     final locationError = asyncLocation.hasError ? asyncLocation.error.toString() : null;
     final dataSource = ref.watch(dataSourceProvider);
     
-    // Новое: состояние и нотифайер плеера
     final playbackState = ref.watch(playbackProvider);
     final playbackNotifier = ref.read(playbackProvider.notifier);
     
-    // ВЕТЕР
     final wind = ref.watch(windProvider);
+
+    // Радарная математика (расчет метров на пиксель)
+    final standardRadii = <double>[100, 250, 500, 1000, 2000, 5000, 10000, 25000, 50000];
+    final earthCircumference = 40075016.686;
+    final lat = currentLocation?.latitude ?? 0.0;
+    
+    // Безопасное получение zoom
+    double currentZoom = 13.0;
+    try { currentZoom = _mapController.camera.zoom; } catch (_) {}
+    
+    final metersPerPixel = (earthCircumference * cos(lat * pi / 180.0)) / (256.0 * pow(2, currentZoom));
+    
+    final targetPixelRadius = min(screenSize.width, screenSize.height) / 4.0;
+    final targetMeters = targetPixelRadius * metersPerPixel;
+    
+    double bestRadiusMeters = standardRadii.first;
+    double minDiff = double.infinity;
+    for (var r in standardRadii) {
+      final diff = (r - targetMeters).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestRadiusMeters = r;
+      }
+    }
+    
+    final actualPixelRadius = bestRadiusMeters / metersPerPixel;
+    final windCircleDiameter = actualPixelRadius * 2;
+    String scaleText = bestRadiusMeters >= 1000 
+        ? '${(bestRadiusMeters / 1000).toStringAsFixed(bestRadiusMeters % 1000 == 0 ? 0 : 1)} km' 
+        : '${bestRadiusMeters.toStringAsFixed(0)} m';
 
     ref.listen(locationProvider, (previous, nextAsync) {
       final next = nextAsync.valueOrNull;
       if (next != null) {
-        _mapController.move(
-          LatLng(next.latitude, next.longitude),
-          _mapController.camera.zoom,
-        );
-        if (_rotationMode == MapRotationMode.heading) {
-          _mapController.rotate(360.0 - next.heading);
+        try {
+          if (_isTrackingPilot) {
+            double z = 13.0;
+            try { z = _mapController.camera.zoom; } catch (_) {}
+            _mapController.move(LatLng(next.latitude, next.longitude), z);
+          }
+          if (_rotationMode == MapRotationMode.heading) {
+            _mapController.rotate(360.0 - next.heading);
+          }
+        } catch (e) {
+          // Игнорируем ошибку
         }
-      } // конец if
-    }); // конец замыкания listen
+      }
+    });
 
     return Scaffold(
       body: Stack(
@@ -89,17 +146,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: const LatLng(0, 0),
+              initialCenter: currentLocation != null 
+                  ? LatLng(currentLocation.latitude, currentLocation.longitude) 
+                  : const LatLng(0, 0),
               initialZoom: 13.0,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
-              onLongPress: _onMapLongPress,
+              onTap: _onMapTap,
+              onMapReady: () {
+                final loc = ref.read(locationProvider).valueOrNull;
+                if (loc != null && _isTrackingPilot) {
+                  _mapController.move(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
+                }
+              },
+              onPositionChanged: (MapCamera camera, bool hasGesture) {
+                if (hasGesture) {
+                  if (_isTrackingPilot) setState(() => _isTrackingPilot = false);
+                  if (!_isFreePanMode) {
+                    _autoReturnTimer?.cancel();
+                    _autoReturnTimer = Timer(Duration(seconds: mapSettings.mapAutoCenterSeconds), () {
+                      if (mounted) {
+                        setState(() => _isTrackingPilot = true);
+                        final loc = ref.read(locationProvider).valueOrNull;
+                        if (loc != null) {
+                          _mapController.move(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
+                        }
+                      }
+                    });
+                  }
+                }
+              },
             ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.paraflight.app',
+                userAgentPackageName: 'com.example.paraflight',
               ),
               if (track.isNotEmpty)
                 PolylineLayer(
@@ -114,45 +196,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (currentLocation != null)
                 MarkerLayer(
                   markers: [
-                    // Новое: Маркер с кругом ветра
                     if (wind != null)
                       Marker(
                         point: LatLng(currentLocation.latitude, currentLocation.longitude),
-                        width: windCircleDiameter + 100, // с запасом для текста
-                        height: windCircleDiameter + 100,
+                        width: windCircleDiameter + 150,
+                        height: windCircleDiameter + 150,
                         child: CustomPaint(
                           painter: WindCirclePainter(
                             windDirection: wind.windDirection,
                             windSpeed: wind.windSpeed,
                             mapRotation: _rotationMode == MapRotationMode.heading ? currentLocation.heading : 0.0,
                             diameter: windCircleDiameter,
+                            scaleText: scaleText,
                           ),
                         ),
                       ),
-                    // Маркер пилота (самолетик)
                     Marker(
                       point: LatLng(currentLocation.latitude, currentLocation.longitude),
                       child: Transform.rotate(
                         angle: currentLocation.heading * pi / 180.0,
-                        child: const Icon(
-                          Icons.flight,
-                          color: Colors.red,
-                          size: 32,
-                        ),
+                        child: const Icon(Icons.flight, color: Colors.red, size: 32),
                       ),
                     ),
                   ],
                 ),
             ],
           ),
-          // Новое: HUD Слой поверх карты
           SafeArea(
             child: Padding(
-              // Изменение: Уменьшены поля от края экрана в 2 раза (было 8.0)
               padding: const EdgeInsets.all(4.0),
               child: Stack(
                 children: [
-                  // Левая колонка
                   Align(
                     alignment: Alignment.topLeft,
                     child: Column(
@@ -164,20 +238,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           unit: 'km/h',
                           value: currentLocation != null ? (currentLocation.speed * 3.6).toStringAsFixed(1) : '--.-',
                         ),
-                        const InstrumentBlock(
-                          title: 'FLT',
-                          unit: 'time',
-                          value: '00:00',
-                        ),
-                        const InstrumentBlock(
-                          title: 'DIST',
-                          unit: 'km',
-                          value: '0.0',
-                        ),
+                        const InstrumentBlock(title: 'FLT', unit: 'time', value: '00:00'),
+                        const InstrumentBlock(title: 'DIST', unit: 'km', value: '0.0'),
                       ],
-                    ), // конец Column
-                  ), // конец Align
-                  // Правая колонка
+                    ),
+                  ),
                   Align(
                     alignment: Alignment.topRight,
                     child: Column(
@@ -189,20 +254,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           unit: 'm',
                           value: currentLocation != null ? currentLocation.altitude.toStringAsFixed(0) : '---',
                         ),
-                        const InstrumentBlock(
-                          title: 'Vz',
-                          unit: 'm/s',
-                          value: '+0.0',
-                        ),
-                        const InstrumentBlock(
-                          title: 'FUEL',
-                          unit: 'L',
-                          value: '--.-',
-                        ),
+                        const InstrumentBlock(title: 'Vz', unit: 'm/s', value: '+0.0'),
+                        const InstrumentBlock(title: 'FUEL', unit: 'L', value: '--.-'),
                       ],
-                    ), // конец Column
-                  ), // конец Align
-                  // Центр
+                    ),
+                  ),
                   Align(
                     alignment: Alignment.topCenter,
                     child: Column(
@@ -222,24 +278,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               'Ошибка: $locationError',
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
-                          ), // конец Container
+                          ),
+                        if ((gpxState == null || !gpxState.isDone) && dataSource == DataSource.simulator)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withAlpha(150),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Stack(
+                              children: [
+                                FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: gpxState?.progress ?? 0.0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withAlpha(200),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                                Center(
+                                  child: Text(
+                                    'Загрузка трека... ${((gpxState?.progress ?? 0.0) * 100).toStringAsFixed(0)}%',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
-                    ), // конец Column
-                  ), // конец Align
+                    ),
+                  ),
                 ],
-              ), // конец Stack
-            ), // конец Padding
-          ), // конец SafeArea
-          // Карточка Ветра и Airspeed
+              ),
+            ),
+          ),
           if (wind != null)
-            Positioned(
-              bottom: dataSource == DataSource.simulator ? 140 : 20, // Изменение: перенесено в левый нижний угол, с учетом плеера
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              bottom: _showOverlays ? (dataSource == DataSource.simulator ? 230 : 100) : (dataSource == DataSource.simulator ? 140 : 20),
               left: 16,
               child: Card(
                 color: Colors.white.withAlpha(220),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Column(
@@ -247,12 +331,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.air, size: 16, color: Colors.blue),
+                          const Icon(Icons.air, size: 16, color: Colors.blue),
                           const SizedBox(width: 8),
-                          Text(
-                            'Ветер: ${wind.windSpeed.toStringAsFixed(1)} м/с',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          Text('Ветер: ${wind.windSpeed.toStringAsFixed(1)} м/с', style: const TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
                       Row(
@@ -272,117 +353,99 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
             ),
-          // Новое: Кнопка компаса
-          Positioned(
-            bottom: dataSource == DataSource.simulator ? 140 : 20, // Изменение: перенесено в правый нижний угол
-            right: 16,
-            child: IconButton(
-              iconSize: 36,
-              onPressed: () {
-                setState(() {
-                  if (_rotationMode == MapRotationMode.north) {
-                    _rotationMode = MapRotationMode.heading;
-                    if (currentLocation != null) {
-                      _mapController.rotate(360.0 - currentLocation.heading);
-                    }
-                  } else {
-                    _rotationMode = MapRotationMode.north;
-                    _mapController.rotate(0);
-                  }
-                });
-              },
-              icon: Transform.rotate(
-                angle: _rotationMode == MapRotationMode.heading && currentLocation != null 
-                    ? -currentLocation.heading * pi / 180.0 
-                    : 0.0,
-                child: CustomPaint(
-                  size: const Size(14, 32),
-                  painter: CompassArrowPainter(),
+          if (dataSource == DataSource.simulator)
+            Positioned(
+              bottom: 20,
+              left: 16,
+              right: 16,
+              child: Card(
+                color: Colors.black54,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Slider(
+                      value: playbackState.progress,
+                      onChanged: (value) => playbackNotifier.seek(value),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(_formatDuration(playbackState.currentDuration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          Text(_formatDuration(playbackState.totalDuration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(icon: const Icon(Icons.fast_rewind, color: Colors.white), onPressed: () => playbackNotifier.seek(0.0)),
+                        IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () => playbackNotifier.setSpeed(max(0.5, playbackState.speedFactor / 2))),
+                        IconButton(icon: Icon(playbackState.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white), onPressed: () => playbackNotifier.togglePlay()),
+                        IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () => playbackNotifier.setSpeed(min(16.0, playbackState.speedFactor * 2))),
+                        Text('x${playbackState.speedFactor.toStringAsFixed(1)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          // Новое: Панель управления воспроизведением
-          if (dataSource == DataSource.simulator)
-            Positioned(
-            bottom: 20,
-            left: 16,
-            right: 16,
-            child: Card(
-              color: Colors.black54,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Slider(
-                    value: playbackState.progress,
-                    onChanged: (value) {
-                      playbackNotifier.seek(value);
-                    }, // конец замыкания onChanged
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDuration(playbackState.currentDuration),
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                        Text(
-                          _formatDuration(playbackState.totalDuration),
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.fast_rewind, color: Colors.white),
-                        onPressed: () {
-                          playbackNotifier.seek(0.0);
-                        }, // конец замыкания onPressed
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.remove, color: Colors.white),
-                        onPressed: () {
-                          playbackNotifier.setSpeed(max(0.5, playbackState.speedFactor / 2));
-                        }, // конец замыкания onPressed
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          playbackState.isPlaying ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          playbackNotifier.togglePlay();
-                        }, // конец замыкания onPressed
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        onPressed: () {
-                          playbackNotifier.setSpeed(min(16.0, playbackState.speedFactor * 2));
-                        }, // конец замыкания onPressed
-                      ),
-                      Text(
-                        'x${playbackState.speedFactor.toStringAsFixed(1)}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Новое: Скрытый бар настроек
+          
+          // НОВОЕ: Линейная панель управления (Linear Control Bar)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            top: _showSettingsBar ? 0 : -100, // Увеличил отступ, чтобы полностью скрыть за SafeArea
+            bottom: _showOverlays ? (dataSource == DataSource.simulator ? 140 : 20) : -100,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildControlButton(Icons.remove, () {
+                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1);
+                  _resetUiTimer();
+                }),
+                _buildControlButton(
+                  _isFreePanMode ? Icons.lock_open : Icons.my_location,
+                  () {
+                    setState(() {
+                      _isFreePanMode = !_isFreePanMode;
+                      if (!_isFreePanMode) {
+                        _isTrackingPilot = true;
+                        final loc = ref.read(locationProvider).valueOrNull;
+                        if (loc != null) _mapController.move(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
+                      }
+                    });
+                    _resetUiTimer();
+                  },
+                  isActive: !_isFreePanMode, // Синяя, когда включено авто-слежение
+                ),
+                _buildControlButton(
+                  _rotationMode == MapRotationMode.heading ? Icons.navigation : Icons.explore,
+                  () {
+                    setState(() {
+                      _rotationMode = _rotationMode == MapRotationMode.north ? MapRotationMode.heading : MapRotationMode.north;
+                      if (_rotationMode == MapRotationMode.north) _mapController.rotate(0);
+                    });
+                    _resetUiTimer();
+                  },
+                  isActive: _rotationMode == MapRotationMode.heading, // Синяя, когда по курсу
+                ),
+                _buildControlButton(Icons.add, () {
+                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1);
+                  _resetUiTimer();
+                }),
+              ],
+            ),
+          ),
+
+          // Верхняя панель
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: _showOverlays ? 0 : -100,
             left: 0,
             right: 0,
             child: Material(
@@ -397,12 +460,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 16),
                       const Text(
                         'ParaFlight',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
+                        style: TextStyle(color: Colors.black87, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                       ),
                       const Spacer(),
                       IconButton(
@@ -410,72 +468,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         icon: const Icon(Icons.settings, color: Colors.black87),
                         onPressed: () {
                           _hideTimer?.cancel();
-                          setState(() {
-                            _showSettingsBar = false;
-                          });
-                          // Переход в настройки
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                          );
-                        }, // конец onPressed
+                          setState(() => _showOverlays = false);
+                          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                        },
                       ),
                       const SizedBox(width: 8),
                     ],
-                  ), // конец Row
-                ), // конец SizedBox
-              ), // конец SafeArea
-            ), // конец Material
-          ), // конец AnimatedPositioned
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
-      ), // конец Stack
+      ),
     );
-  } // конец метода build
-} // конец класса _DashboardScreenState
+  }
+}
 
 String _formatDuration(Duration duration) {
   String twoDigits(int n) => n.toString().padLeft(2, "0");
   String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
   String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-  if (duration.inHours > 0) {
-    return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
-  }
+  if (duration.inHours > 0) return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
   return "$twoDigitMinutes:$twoDigitSeconds";
-}
-
-class CompassArrowPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    final redPath = Path()
-      ..moveTo(w / 2, 0)
-      ..lineTo(w, h / 2)
-      ..lineTo(0, h / 2)
-      ..close();
-    canvas.drawPath(redPath, Paint()..color = Colors.red);
-
-    final whitePath = Path()
-      ..moveTo(w / 2, h)
-      ..lineTo(w, h / 2)
-      ..lineTo(0, h / 2)
-      ..close();
-    canvas.drawPath(whitePath, Paint()..color = Colors.white);
-
-    final borderPath = Path()
-      ..moveTo(w / 2, 0)
-      ..lineTo(w, h / 2)
-      ..lineTo(w / 2, h)
-      ..lineTo(0, h / 2)
-      ..close();
-    canvas.drawPath(
-        borderPath,
-        Paint()
-          ..color = Colors.grey.shade800
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
