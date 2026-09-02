@@ -56,27 +56,18 @@ final gpxPointsProvider = StreamProvider<GpxParseState>((ref) async* {
 // Новое: Перечисление источников данных
 enum DataSource { simulator, internalGps }
 
-// Новое: Провайдер текущего источника с персистентностью
+// Новое: Провайдер текущего источника (всегда стартует с внутреннего GPS)
 class DataSourceNotifier extends StateNotifier<DataSource> {
-  final Ref ref;
-
-  DataSourceNotifier(this.ref) : super(_parse(ref.read(sharedPreferencesProvider).getString('data_source'))) {}
-
-  static DataSource _parse(String? value) {
-    if (value == DataSource.internalGps.name) return DataSource.internalGps;
-    return DataSource.simulator;
-  } // конец метода _parse
+  DataSourceNotifier() : super(DataSource.internalGps);
 
   void setSource(DataSource source) {
     state = source;
-    ref.read(sharedPreferencesProvider).setString('data_source', source.name);
-  } // конец метода setSource
-} // конец класса DataSourceNotifier
+  }
+}
 
 final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>((ref) {
-  return DataSourceNotifier(ref);
-}); // конец dataSourceProvider
-
+  return DataSourceNotifier();
+});
 // Новое: Провайдер реального GPS через Geolocator
 final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   bool serviceEnabled;

@@ -249,6 +249,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                       mapRotation: _rotationMode == MapRotationMode.heading ? (currentLocation?.heading ?? 0.0) : 0.0,
                       diameter: windCircleDiameter,
                       scaleText: scaleText,
+                      showNorthPointer: _rotationMode == MapRotationMode.heading,
                     ),
                   ),
                 ),
