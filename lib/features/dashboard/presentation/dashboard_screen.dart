@@ -22,7 +22,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   MapRotationMode? _rotationMode;
   
@@ -32,6 +32,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isFreePanMode = false;
   bool _isTrackingPilot = true;
   Timer? _autoReturnTimer;
+
+  // Переменная для настройки скорости возврата (в миллисекундах)
+  final int _mapReturnAnimationMs = 1000;
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    final latTween = Tween<double>(begin: _mapController.camera.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(begin: _mapController.camera.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.camera.zoom, end: destZoom);
+
+    final controller = AnimationController(duration: Duration(milliseconds: _mapReturnAnimationMs), vsync: this);
+    final animation = CurvedAnimation(parent: controller, curve: Curves.easeInOut);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
 
   @override
   void dispose() {
@@ -170,7 +197,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         setState(() => _isTrackingPilot = true);
                         final loc = ref.read(locationProvider).valueOrNull;
                         if (loc != null) {
-                          _mapController.move(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
+                          _animatedMapMove(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
                         }
                       }
                     });
@@ -196,21 +223,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (currentLocation != null)
                 MarkerLayer(
                   markers: [
-                    if (wind != null)
-                      Marker(
-                        point: LatLng(currentLocation.latitude, currentLocation.longitude),
-                        width: windCircleDiameter + 150,
-                        height: windCircleDiameter + 150,
-                        child: CustomPaint(
-                          painter: WindCirclePainter(
-                            windDirection: wind.windDirection,
-                            windSpeed: wind.windSpeed,
-                            mapRotation: _rotationMode == MapRotationMode.heading ? currentLocation.heading : 0.0,
-                            diameter: windCircleDiameter,
-                            scaleText: scaleText,
-                          ),
-                        ),
-                      ),
                     Marker(
                       point: LatLng(currentLocation.latitude, currentLocation.longitude),
                       child: Transform.rotate(
@@ -222,6 +234,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
             ],
           ),
+          
+          // Фиксированный по центру экранный круг ветра
+          if (wind != null)
+            IgnorePointer(
+              child: Center(
+                child: SizedBox(
+                  width: windCircleDiameter + 150,
+                  height: windCircleDiameter + 150,
+                  child: CustomPaint(
+                    painter: WindCirclePainter(
+                      windDirection: wind.windDirection,
+                      windSpeed: wind.windSpeed,
+                      mapRotation: _rotationMode == MapRotationMode.heading ? (currentLocation?.heading ?? 0.0) : 0.0,
+                      diameter: windCircleDiameter,
+                      scaleText: scaleText,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(4.0),
@@ -355,49 +387,81 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           if (dataSource == DataSource.simulator)
             Positioned(
-              bottom: 20,
+              bottom: 10,
               left: 16,
               right: 16,
-              child: Card(
-                color: Colors.black54,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xDD333333),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Row(
                   children: [
-                    Slider(
-                      value: playbackState.progress,
-                      onChanged: (value) => playbackNotifier.seek(value),
+                    InkWell(
+                      onTap: () => playbackNotifier.togglePlay(),
+                      child: Icon(
+                        playbackState.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(_formatDuration(playbackState.currentDuration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                          Text(_formatDuration(playbackState.totalDuration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 2.0,
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                            ),
+                            child: Slider(
+                              value: playbackState.progress,
+                              activeColor: Colors.blueAccent,
+                              inactiveColor: Colors.white24,
+                              onChanged: (value) => playbackNotifier.seek(value),
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(_formatDuration(playbackState.currentDuration), style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                              Text(_formatDuration(playbackState.totalDuration), style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        IconButton(icon: const Icon(Icons.fast_rewind, color: Colors.white), onPressed: () => playbackNotifier.seek(0.0)),
-                        IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () => playbackNotifier.setSpeed(max(0.5, playbackState.speedFactor / 2))),
-                        IconButton(icon: Icon(playbackState.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white), onPressed: () => playbackNotifier.togglePlay()),
-                        IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () => playbackNotifier.setSpeed(min(16.0, playbackState.speedFactor * 2))),
-                        Text('x${playbackState.speedFactor.toStringAsFixed(1)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        double nextSpeed = playbackState.speedFactor == 1.0 ? 2.0 :
+                                           playbackState.speedFactor == 2.0 ? 5.0 :
+                                           playbackState.speedFactor == 5.0 ? 10.0 : 1.0;
+                        playbackNotifier.setSpeed(nextSpeed);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white12,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('${playbackState.speedFactor.toInt()}x', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           
-          // НОВОЕ: Линейная панель управления (Linear Control Bar)
+          // Панель: Линейная панель управления (Linear Control Bar)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            bottom: _showOverlays ? (dataSource == DataSource.simulator ? 140 : 20) : -100,
+            bottom: _showOverlays ? (dataSource == DataSource.simulator ? 90 : 20) : -100,
             left: 16,
             right: 16,
             child: Row(
@@ -415,7 +479,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       if (!_isFreePanMode) {
                         _isTrackingPilot = true;
                         final loc = ref.read(locationProvider).valueOrNull;
-                        if (loc != null) _mapController.move(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
+                        if (loc != null) _animatedMapMove(LatLng(loc.latitude, loc.longitude), _mapController.camera.zoom);
                       }
                     });
                     _resetUiTimer();

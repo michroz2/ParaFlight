@@ -1,4 +1,4 @@
-﻿// Версия: 0.1.0 | Цель: Отрисовка круга ветра с радарным масштабом
+// Версия: 0.1.0 | Цель: Отрисовка круга ветра с радарным масштабом
 
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -8,7 +8,8 @@ class WindCirclePainter extends CustomPainter {
   final double windSpeed;
   final double mapRotation;
   final double diameter;
-  final String scaleText; // Новое: Текст масштаба
+  final String scaleText;
+  final bool showNorthPointer;
 
   WindCirclePainter({
     required this.windDirection,
@@ -16,6 +17,7 @@ class WindCirclePainter extends CustomPainter {
     required this.mapRotation,
     required this.diameter,
     required this.scaleText,
+    required this.showNorthPointer,
   });
 
   @override
@@ -80,9 +82,64 @@ class WindCirclePainter extends CustomPainter {
     // Размещение текста: над линией, ближе к краю круга
     final scaleTextX = center.dx - radius + 4.0;
     final scaleTextY = center.dy - scaleTextPainter.height - 2.0;
+
+    // Отрисовка полупрозрачного фона для текста
+    final bgRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        scaleTextX - 2, 
+        scaleTextY - 1, 
+        scaleTextPainter.width + 4, 
+        scaleTextPainter.height + 2
+      ),
+      const Radius.circular(4),
+    );
+    final bgPaint = Paint()..color = Colors.white.withAlpha(120);
+    canvas.drawRRect(bgRect, bgPaint);
+
     scaleTextPainter.paint(canvas, Offset(scaleTextX, scaleTextY));
 
-    // 3. Отрисовка стрелки ветра
+    // 3. Отрисовка линии, указывающей на север (только если курс сверху)
+    if (showNorthPointer) {
+      final northPaint = Paint()
+        ..color = Colors.red.withAlpha(200)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      final northAngle = -mapRotation * pi / 180.0 - pi / 2;
+      
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      // Поворачиваем холст так, чтобы Север всегда был "сверху" (отрицательная ось Y)
+      canvas.rotate(northAngle + pi / 2);
+
+      // Красная линия от центра до края круга
+      canvas.drawLine(Offset.zero, Offset(0, -radius), northPaint);
+
+      // Буква N
+      final nSpan = const TextSpan(
+        text: 'N',
+        style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+      );
+      final nPainter = TextPainter(text: nSpan, textDirection: TextDirection.ltr);
+      nPainter.layout();
+
+      // Размещаем N ровно под окружностью (отступ сверху = 2px)
+      final bgWidth = nPainter.width + 6;
+      final bgHeight = nPainter.height + 2;
+      final nCenterY = -radius + bgHeight / 2 + 2; 
+
+      final nBgRect = Rect.fromCenter(
+        center: Offset(0, nCenterY),
+        width: bgWidth,
+        height: bgHeight,
+      );
+      canvas.drawRRect(RRect.fromRectAndRadius(nBgRect, const Radius.circular(4)), Paint()..color = Colors.white.withAlpha(220));
+
+      nPainter.paint(canvas, Offset(-nPainter.width / 2, nCenterY - nPainter.height / 2));
+      canvas.restore();
+    }
+
+    // 4. Отрисовка стрелки ветра
     final screenAngle = (windDirection - mapRotation) * pi / 180.0;
     final drawAngle = screenAngle - pi / 2;
 
