@@ -1,17 +1,16 @@
-# paraflight
+# ParaFlight
 
-A new Flutter project.
+ParaFlight is a Flutter application designed for paragliding and paramotor pilots. 
+It features a wind direction and speed calculator based on GPS track anomalies, 
+flight detection (differentiating between ground movement and flight), 
+and GPX track recording and simulation.
 
-## Getting Started
+## Features
+- GPX playback simulator
+- Internal GPS support
+- Wind and Airspeed calculation
+- Flight state detection
+- GPX Export with segment splitting
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Versioning
+This project strictly follows versioning: X.Y.Z

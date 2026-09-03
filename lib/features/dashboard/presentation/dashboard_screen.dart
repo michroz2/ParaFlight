@@ -280,11 +280,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       }
     });
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-
+    return WillPopScope(
+      onWillPop: () async {
         final currentSource = ref.read(dataSourceProvider);
         if (currentSource == DataSource.internalGps) {
           final rawPoints = ref.read(realGpsTrackProvider);
@@ -312,10 +309,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           }
         }
 
-        if (context.mounted) {
-          // Выходим из приложения (Flutter не предоставляет прямой способ выйти, но можно использовать SystemNavigator.pop)
-          await SystemNavigator.pop();
-        }
+        // Позволяем системе выйти (закрыть экран)
+        return true;
       },
       child: Scaffold(
         body: Stack(
