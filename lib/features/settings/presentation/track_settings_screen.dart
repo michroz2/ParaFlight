@@ -13,15 +13,20 @@ class TrackSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(trackConfigProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Управление треком'),
-      ),
+      appBar: AppBar(title: const Text('Управление треком')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const Text('Задержки', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const Text(
+            'Задержки',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
           const SizedBox(height: 8),
-          
+
           ListTile(
             title: const Text('Ожидание перед стартом (сек)'),
             subtitle: Text(config.takeoffWaitTimeSec.toString()),
@@ -33,7 +38,8 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 30,
                 divisions: 29,
                 label: config.takeoffWaitTimeSec.toString(),
-                onChanged: (value) => notifier.updateConfig(takeoffWaitTimeSec: value.toInt()),
+                onChanged: (value) =>
+                    notifier.updateConfig(takeoffWaitTimeSec: value.toInt()),
               ),
             ),
           ),
@@ -48,7 +54,8 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 30,
                 divisions: 25,
                 label: config.takeoffFlightTimeSec.toString(),
-                onChanged: (value) => notifier.updateConfig(takeoffFlightTimeSec: value.toInt()),
+                onChanged: (value) =>
+                    notifier.updateConfig(takeoffFlightTimeSec: value.toInt()),
               ),
             ),
           ),
@@ -63,18 +70,28 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 30,
                 divisions: 25,
                 label: config.landingConfirmTimeSec.toString(),
-                onChanged: (value) => notifier.updateConfig(landingConfirmTimeSec: value.toInt()),
+                onChanged: (value) =>
+                    notifier.updateConfig(landingConfirmTimeSec: value.toInt()),
               ),
             ),
           ),
-          
+
           const Divider(height: 32),
-          const Text('Пороги скоростей (м/с)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const Text(
+            'Пороги скоростей (м/с)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
           const SizedBox(height: 8),
 
           ListTile(
             title: const Text('Мин. полетная скорость'),
-            subtitle: Text('${config.minFlightSpeedMs.toStringAsFixed(1)} м/с (~${(config.minFlightSpeedMs * 3.6).toStringAsFixed(0)} км/ч)'),
+            subtitle: Text(
+              '${config.minFlightSpeedMs.toStringAsFixed(1)} м/с (~${(config.minFlightSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
+            ),
             trailing: SizedBox(
               width: 150,
               child: Slider(
@@ -83,13 +100,16 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 10.0,
                 divisions: 80,
                 label: config.minFlightSpeedMs.toStringAsFixed(1),
-                onChanged: (value) => notifier.updateConfig(minFlightSpeedMs: value),
+                onChanged: (value) =>
+                    notifier.updateConfig(minFlightSpeedMs: value),
               ),
             ),
           ),
           ListTile(
             title: const Text('Макс. скорость пешехода'),
-            subtitle: Text('${config.maxWalkSpeedMs.toStringAsFixed(1)} м/с (~${(config.maxWalkSpeedMs * 3.6).toStringAsFixed(0)} км/ч)'),
+            subtitle: Text(
+              '${config.maxWalkSpeedMs.toStringAsFixed(1)} м/с (~${(config.maxWalkSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
+            ),
             trailing: SizedBox(
               width: 150,
               child: Slider(
@@ -98,13 +118,21 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 5.0,
                 divisions: 48,
                 label: config.maxWalkSpeedMs.toStringAsFixed(1),
-                onChanged: (value) => notifier.updateConfig(maxWalkSpeedMs: value),
+                onChanged: (value) =>
+                    notifier.updateConfig(maxWalkSpeedMs: value),
               ),
             ),
           ),
-          
+
           const Divider(height: 32),
-          const Text('Continuous Flight Validation (CFV)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const Text(
+            'Continuous Flight Validation (CFV)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
           const SizedBox(height: 8),
 
           ListTile(
@@ -118,7 +146,8 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 300,
                 divisions: 27,
                 label: config.cfvWindFailTimeoutSec.toString(),
-                onChanged: (value) => notifier.updateConfig(cfvWindFailTimeoutSec: value.toInt()),
+                onChanged: (value) =>
+                    notifier.updateConfig(cfvWindFailTimeoutSec: value.toInt()),
               ),
             ),
           ),
@@ -133,7 +162,52 @@ class TrackSettingsScreen extends ConsumerWidget {
                 max: 15,
                 divisions: 13,
                 label: config.cfvTurnWindowSec.toString(),
-                onChanged: (value) => notifier.updateConfig(cfvTurnWindowSec: value.toInt()),
+                onChanged: (value) =>
+                    notifier.updateConfig(cfvTurnWindowSec: value.toInt()),
+              ),
+            ),
+          ),
+
+          const Divider(height: 32),
+          const Text(
+            'Запись трека',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          ListTile(
+            title: const Text('Интервал записи GPS (сек)'),
+            subtitle: Text(config.gpsRecordIntervalSec.toStringAsFixed(1)),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.gpsRecordIntervalSec,
+                min: 0.3,
+                max: 3.0,
+                divisions: 27, // (3.0 - 0.3) / 0.1 = 27
+                label: config.gpsRecordIntervalSec.toStringAsFixed(1),
+                onChanged: (value) =>
+                    notifier.updateConfig(gpsRecordIntervalSec: value),
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Оставить секунд до/после полета (сек)'),
+            subtitle: Text(config.gpsCleanupExtraSec.toString()),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.gpsCleanupExtraSec.toDouble(),
+                min: 0,
+                max: 10,
+                divisions: 10,
+                label: config.gpsCleanupExtraSec.toString(),
+                onChanged: (value) =>
+                    notifier.updateConfig(gpsCleanupExtraSec: value.toInt()),
               ),
             ),
           ),

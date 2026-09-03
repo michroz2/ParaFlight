@@ -21,6 +21,8 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       maxWalkSpeedMs: prefs.getDouble('maxWalkSpeedMs') ?? 1.38,
       cfvWindFailTimeoutSec: prefs.getInt('cfvWindFailTimeoutSec') ?? 180,
       cfvTurnWindowSec: prefs.getInt('cfvTurnWindowSec') ?? 5,
+      gpsRecordIntervalSec: prefs.getDouble('gpsRecordIntervalSec') ?? 0.5,
+      gpsCleanupExtraSec: prefs.getInt('gpsCleanupExtraSec') ?? 5,
     );
   }
 
@@ -32,16 +34,29 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     double? maxWalkSpeedMs,
     int? cfvWindFailTimeoutSec,
     int? cfvTurnWindowSec,
+    double? gpsRecordIntervalSec,
+    int? gpsCleanupExtraSec,
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
-    
-    if (takeoffWaitTimeSec != null) await prefs.setInt('takeoffWaitTimeSec', takeoffWaitTimeSec);
-    if (takeoffFlightTimeSec != null) await prefs.setInt('takeoffFlightTimeSec', takeoffFlightTimeSec);
-    if (landingConfirmTimeSec != null) await prefs.setInt('landingConfirmTimeSec', landingConfirmTimeSec);
-    if (minFlightSpeedMs != null) await prefs.setDouble('minFlightSpeedMs', minFlightSpeedMs);
-    if (maxWalkSpeedMs != null) await prefs.setDouble('maxWalkSpeedMs', maxWalkSpeedMs);
-    if (cfvWindFailTimeoutSec != null) await prefs.setInt('cfvWindFailTimeoutSec', cfvWindFailTimeoutSec);
-    if (cfvTurnWindowSec != null) await prefs.setInt('cfvTurnWindowSec', cfvTurnWindowSec);
+
+    if (takeoffWaitTimeSec != null)
+      await prefs.setInt('takeoffWaitTimeSec', takeoffWaitTimeSec);
+    if (takeoffFlightTimeSec != null)
+      await prefs.setInt('takeoffFlightTimeSec', takeoffFlightTimeSec);
+    if (landingConfirmTimeSec != null)
+      await prefs.setInt('landingConfirmTimeSec', landingConfirmTimeSec);
+    if (minFlightSpeedMs != null)
+      await prefs.setDouble('minFlightSpeedMs', minFlightSpeedMs);
+    if (maxWalkSpeedMs != null)
+      await prefs.setDouble('maxWalkSpeedMs', maxWalkSpeedMs);
+    if (cfvWindFailTimeoutSec != null)
+      await prefs.setInt('cfvWindFailTimeoutSec', cfvWindFailTimeoutSec);
+    if (cfvTurnWindowSec != null)
+      await prefs.setInt('cfvTurnWindowSec', cfvTurnWindowSec);
+    if (gpsRecordIntervalSec != null)
+      await prefs.setDouble('gpsRecordIntervalSec', gpsRecordIntervalSec);
+    if (gpsCleanupExtraSec != null)
+      await prefs.setInt('gpsCleanupExtraSec', gpsCleanupExtraSec);
 
     state = state.copyWith(
       takeoffWaitTimeSec: takeoffWaitTimeSec,
@@ -51,10 +66,13 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       maxWalkSpeedMs: maxWalkSpeedMs,
       cfvWindFailTimeoutSec: cfvWindFailTimeoutSec,
       cfvTurnWindowSec: cfvTurnWindowSec,
+      gpsRecordIntervalSec: gpsRecordIntervalSec,
+      gpsCleanupExtraSec: gpsCleanupExtraSec,
     );
   }
 } // конец класса TrackConfigNotifier
 
-final trackConfigProvider = StateNotifierProvider<TrackConfigNotifier, TrackConfig>((ref) {
-  return TrackConfigNotifier(ref);
-});
+final trackConfigProvider =
+    StateNotifierProvider<TrackConfigNotifier, TrackConfig>((ref) {
+      return TrackConfigNotifier(ref);
+    });

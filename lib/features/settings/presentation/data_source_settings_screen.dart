@@ -7,6 +7,11 @@ import 'package:path/path.dart' as path;
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/tracks_manager.dart';
+import '../../../core/location/flight_path_state.dart';
+import '../../../core/location/gpx_writer.dart';
+import '../../flight_detector/presentation/flight_detector_provider.dart';
+import '../../flight_detector/presentation/track_config_provider.dart';
+import '../../dashboard/presentation/widgets/save_track_dialog.dart';
 
 class DataSourceSettingsScreen extends ConsumerWidget {
   const DataSourceSettingsScreen({super.key});
@@ -14,7 +19,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
   void _showTrackPicker(BuildContext context, WidgetRef ref) async {
     final manager = ref.read(tracksManagerProvider);
     final tracks = await manager.getAvailableTracks();
-    
+
     if (!context.mounted) return;
 
     showModalBottomSheet(
@@ -26,7 +31,10 @@ class DataSourceSettingsScreen extends ConsumerWidget {
               children: [
                 const Padding(
                   padding: EdgeInsets.all(16.0),
-                  child: Text('Выберите трек для симуляции', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Выберите трек для симуляции',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 ListTile(
                   leading: const Icon(Icons.file_download),
@@ -34,7 +42,9 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                   onTap: () async {
                     final imported = await manager.importTrack();
                     if (imported != null) {
-                      ref.read(selectedGpxFileProvider.notifier).setFile(imported.path);
+                      ref
+                          .read(selectedGpxFileProvider.notifier)
+                          .setFile(imported.path);
                       if (context.mounted) Navigator.pop(ctx);
                     }
                   },
@@ -50,7 +60,9 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                         leading: const Icon(Icons.map),
                         title: Text(name),
                         onTap: () {
-                          ref.read(selectedGpxFileProvider.notifier).setFile(file.path);
+                          ref
+                              .read(selectedGpxFileProvider.notifier)
+                              .setFile(file.path);
                           if (context.mounted) Navigator.pop(ctx);
                         },
                       );
@@ -59,9 +71,9 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                 ),
               ],
             );
-          }
+          },
         );
-      }
+      },
     );
   }
 
@@ -69,13 +81,13 @@ class DataSourceSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentSource = ref.watch(dataSourceProvider);
     final selectedFile = ref.watch(selectedGpxFileProvider);
-    
-    final fileName = selectedFile != null ? path.basename(selectedFile) : 'Файл не выбран';
+
+    final fileName = selectedFile != null
+        ? path.basename(selectedFile)
+        : 'Файл не выбран';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Источник данных'),
-      ),
+      appBar: AppBar(title: const Text('Источник данных')),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         children: [
@@ -84,24 +96,66 @@ class DataSourceSettingsScreen extends ConsumerWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Воспроизведение записанного трека с симуляцией времени'),
+                const Text(
+                  'Воспроизведение записанного трека с симуляцией времени',
+                ),
                 if (currentSource == DataSource.simulator) ...[
                   const SizedBox(height: 8),
-                  Text('Текущий трек: $fileName', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Текущий трек: $fileName',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   TextButton.icon(
                     onPressed: () => _showTrackPicker(context, ref),
                     icon: const Icon(Icons.folder_open),
                     label: const Text('Выбрать другой трек'),
                   ),
-                ]
+                ],
               ],
             ),
             value: DataSource.simulator,
             groupValue: currentSource,
-            onChanged: (DataSource? value) {
+            onChanged: (DataSource? value) async {
               if (value != null) {
+                if (currentSource == DataSource.internalGps &&
+                    value == DataSource.simulator) {
+                  final rawPoints = ref.read(realGpsTrackProvider);
+                  if (rawPoints.isNotEmpty) {
+                    final flightDetectorState = ref.read(
+                      flightDetectorProvider,
+                    );
+                    final result = await showDialog<Map<String, dynamic>>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => SaveTrackDialog(
+                        flightCount: flightDetectorState.flights.length,
+                        totalPoints: rawPoints.length,
+                      ),
+                    );
+
+                    if (result != null) {
+                      final config = ref.read(trackConfigProvider);
+                      await GpxWriter.saveTrack(
+                        rawPoints: rawPoints,
+                        flights: flightDetectorState.flights,
+                        cleanUpExtra: result['cleanUpExtra'],
+                        splitFlights: result['splitFlights'],
+                        cleanupExtraSec: config.gpsCleanupExtraSec,
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Трек успешно сохранён'),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                }
+
                 ref.read(dataSourceProvider.notifier).setSource(value);
-                if (selectedFile == null || selectedFile.isEmpty) {
+                if (value == DataSource.simulator &&
+                    (selectedFile == null || selectedFile.isEmpty)) {
                   _showTrackPicker(context, ref);
                 }
               }
@@ -110,7 +164,9 @@ class DataSourceSettingsScreen extends ConsumerWidget {
 
           RadioListTile<DataSource>(
             title: const Text('Встроенный GPS смартфона'),
-            subtitle: const Text('Использование аппаратного датчика геолокации устройства'),
+            subtitle: const Text(
+              'Использование аппаратного датчика геолокации устройства',
+            ),
             value: DataSource.internalGps,
             groupValue: currentSource,
             onChanged: (DataSource? value) {

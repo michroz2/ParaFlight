@@ -3,16 +3,16 @@
 class TrackConfig {
   /// Время топтания на месте перед разбегом (в секундах)
   final int takeoffWaitTimeSec;
-  
+
   /// Интервал поддержания полетной скорости для подтверждения старта (в секундах)
   final int takeoffFlightTimeSec;
-  
+
   /// Время нулевой скорости для подтверждения посадки (в секундах)
   final int landingConfirmTimeSec;
-  
+
   /// Порог полетной скорости в м/с (по умолчанию ~15 км/ч)
   final double minFlightSpeedMs;
-  
+
   /// Порог скорости ходьбы в м/с (по умолчанию ~5 км/ч)
   final double maxWalkSpeedMs;
 
@@ -31,17 +31,25 @@ class TrackConfig {
   /// Окно поворота на перекрестке (сек)
   final int cfvTurnWindowSec;
 
+  /// Интервал записи GPS (сек)
+  final double gpsRecordIntervalSec;
+
+  /// Оставить секунд до/после полета при очистке (сек)
+  final int gpsCleanupExtraSec;
+
   const TrackConfig({
     this.takeoffWaitTimeSec = 5,
     this.takeoffFlightTimeSec = 15,
     this.landingConfirmTimeSec = 10,
     this.minFlightSpeedMs = 4.16, // ~15 km/h
-    this.maxWalkSpeedMs = 1.38,   // ~5 km/h
-    this.cfvMinFlightSog = 2.77,  // ~10 km/h
-    this.cfvTurnMinSog = 5.55,    // ~20 km/h
-    this.cfvHighwaySog = 25.0,    // ~90 km/h
+    this.maxWalkSpeedMs = 1.38, // ~5 km/h
+    this.cfvMinFlightSog = 2.77, // ~10 km/h
+    this.cfvTurnMinSog = 5.55, // ~20 km/h
+    this.cfvHighwaySog = 25.0, // ~90 km/h
     this.cfvWindFailTimeoutSec = 180,
     this.cfvTurnWindowSec = 5,
+    this.gpsRecordIntervalSec = 0.5,
+    this.gpsCleanupExtraSec = 5,
   });
 
   TrackConfig copyWith({
@@ -55,18 +63,24 @@ class TrackConfig {
     double? cfvHighwaySog,
     int? cfvWindFailTimeoutSec,
     int? cfvTurnWindowSec,
+    double? gpsRecordIntervalSec,
+    int? gpsCleanupExtraSec,
   }) {
     return TrackConfig(
       takeoffWaitTimeSec: takeoffWaitTimeSec ?? this.takeoffWaitTimeSec,
       takeoffFlightTimeSec: takeoffFlightTimeSec ?? this.takeoffFlightTimeSec,
-      landingConfirmTimeSec: landingConfirmTimeSec ?? this.landingConfirmTimeSec,
+      landingConfirmTimeSec:
+          landingConfirmTimeSec ?? this.landingConfirmTimeSec,
       minFlightSpeedMs: minFlightSpeedMs ?? this.minFlightSpeedMs,
       maxWalkSpeedMs: maxWalkSpeedMs ?? this.maxWalkSpeedMs,
       cfvMinFlightSog: cfvMinFlightSog ?? this.cfvMinFlightSog,
       cfvTurnMinSog: cfvTurnMinSog ?? this.cfvTurnMinSog,
       cfvHighwaySog: cfvHighwaySog ?? this.cfvHighwaySog,
-      cfvWindFailTimeoutSec: cfvWindFailTimeoutSec ?? this.cfvWindFailTimeoutSec,
+      cfvWindFailTimeoutSec:
+          cfvWindFailTimeoutSec ?? this.cfvWindFailTimeoutSec,
       cfvTurnWindowSec: cfvTurnWindowSec ?? this.cfvTurnWindowSec,
+      gpsRecordIntervalSec: gpsRecordIntervalSec ?? this.gpsRecordIntervalSec,
+      gpsCleanupExtraSec: gpsCleanupExtraSec ?? this.gpsCleanupExtraSec,
     );
   }
 } // конец класса TrackConfig
