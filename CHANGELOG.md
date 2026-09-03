@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.4.0+1] - 2026-09-03
+## [1.7.0+1] - 2026-09-03
 ### Added
 - GPS track recording using internal GPS data.
 - Rate-limiting configuration for track points (0.3s - 3.0s interval).
