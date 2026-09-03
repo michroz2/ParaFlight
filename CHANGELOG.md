@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-09-03
+### Added
+- Added current version to the title bar on the Dashboard screen.
+
 ## [1.7.0] - 2026-09-03
 ### Added
 - GPS track recording using internal GPS data.

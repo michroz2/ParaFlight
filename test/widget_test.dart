@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:paraflight/main.dart';
 import 'dart:io';
@@ -22,6 +24,13 @@ void main() {
   testWidgets('Smoke test for ParaFlightApp', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
+    PackageInfo.setMockInitialValues(
+      appName: 'ParaFlight',
+      packageName: 'com.example.paraflight',
+      version: '1.8.0',
+      buildNumber: '1',
+      buildSignature: '',
+    );
 
     final tracksManager = MockTracksManager();
 
@@ -40,6 +49,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify that our title is present.
-    expect(find.text('ParaFlight'), findsOneWidget);
+    expect(find.textContaining('ParaFlight'), findsOneWidget);
   });
 }

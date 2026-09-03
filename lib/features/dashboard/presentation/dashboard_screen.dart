@@ -11,6 +11,7 @@ import 'dart:math';
 import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
+import '../../../core/version_provider.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart'; // Новое: импорт провайдера
 import '../../flight_detector/presentation/track_config_provider.dart';
 import '../../flight_detector/domain/flight_state.dart';
@@ -928,14 +929,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: Row(
                       children: [
                         const SizedBox(width: 16),
-                        const Text(
-                          'ParaFlight',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final versionAsync = ref.watch(packageInfoProvider);
+                            final versionText = versionAsync.when(
+                              data: (info) => ' v${info.version}',
+                              loading: () => '',
+                              error: (_, __) => '',
+                            );
+                            return Text(
+                              'ParaFlight$versionText',
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            );
+                          },
                         ),
                         const Spacer(),
                         IconButton(
