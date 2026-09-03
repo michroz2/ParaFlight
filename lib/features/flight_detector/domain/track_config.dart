@@ -28,6 +28,9 @@ class TrackConfig {
   /// Таймаут падения ветра перед дисквалификацией полета (сек)
   final int cfvWindFailTimeoutSec;
 
+  /// Окно поворота на перекрестке (сек)
+  final int cfvTurnWindowSec;
+
   const TrackConfig({
     this.takeoffWaitTimeSec = 5,
     this.takeoffFlightTimeSec = 15,
@@ -37,7 +40,8 @@ class TrackConfig {
     this.cfvMinFlightSog = 2.77,  // ~10 km/h
     this.cfvTurnMinSog = 5.55,    // ~20 km/h
     this.cfvHighwaySog = 25.0,    // ~90 km/h
-    this.cfvWindFailTimeoutSec = 60,
+    this.cfvWindFailTimeoutSec = 180,
+    this.cfvTurnWindowSec = 5,
   });
 
   TrackConfig copyWith({
@@ -50,6 +54,7 @@ class TrackConfig {
     double? cfvTurnMinSog,
     double? cfvHighwaySog,
     int? cfvWindFailTimeoutSec,
+    int? cfvTurnWindowSec,
   }) {
     return TrackConfig(
       takeoffWaitTimeSec: takeoffWaitTimeSec ?? this.takeoffWaitTimeSec,
@@ -61,6 +66,7 @@ class TrackConfig {
       cfvTurnMinSog: cfvTurnMinSog ?? this.cfvTurnMinSog,
       cfvHighwaySog: cfvHighwaySog ?? this.cfvHighwaySog,
       cfvWindFailTimeoutSec: cfvWindFailTimeoutSec ?? this.cfvWindFailTimeoutSec,
+      cfvTurnWindowSec: cfvTurnWindowSec ?? this.cfvTurnWindowSec,
     );
   }
 } // конец класса TrackConfig

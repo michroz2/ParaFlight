@@ -94,11 +94,46 @@ class TrackSettingsScreen extends ConsumerWidget {
               width: 150,
               child: Slider(
                 value: config.maxWalkSpeedMs,
-                min: 0.5,
+                min: 0.2,
                 max: 5.0,
-                divisions: 45,
+                divisions: 48,
                 label: config.maxWalkSpeedMs.toStringAsFixed(1),
                 onChanged: (value) => notifier.updateConfig(maxWalkSpeedMs: value),
+              ),
+            ),
+          ),
+          
+          const Divider(height: 32),
+          const Text('Continuous Flight Validation (CFV)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const SizedBox(height: 8),
+
+          ListTile(
+            title: const Text('Таймаут провала ветра (сек)'),
+            subtitle: Text(config.cfvWindFailTimeoutSec.toString()),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.cfvWindFailTimeoutSec.toDouble(),
+                min: 30,
+                max: 300,
+                divisions: 27,
+                label: config.cfvWindFailTimeoutSec.toString(),
+                onChanged: (value) => notifier.updateConfig(cfvWindFailTimeoutSec: value.toInt()),
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Окно поворота (сек)'),
+            subtitle: Text(config.cfvTurnWindowSec.toString()),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.cfvTurnWindowSec.toDouble(),
+                min: 2,
+                max: 15,
+                divisions: 13,
+                label: config.cfvTurnWindowSec.toString(),
+                onChanged: (value) => notifier.updateConfig(cfvTurnWindowSec: value.toInt()),
               ),
             ),
           ),

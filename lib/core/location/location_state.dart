@@ -1,4 +1,4 @@
-﻿// Версия: 0.6.0 | Цель: Провайдеры локации и состояния GPX
+// Версия: 0.6.0 | Цель: Провайдеры локации и состояния GPX
 
 import 'dart:io';
 
@@ -24,7 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Новое: Провайдер выбранного GPX файла
 final selectedGpxFileProvider = StateNotifierProvider<SelectedGpxFileNotifier, String?>((ref) {
-  final prefs = ref.watch(preferencesProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
   return SelectedGpxFileNotifier(prefs);
 });
 

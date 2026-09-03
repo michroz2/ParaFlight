@@ -7,7 +7,7 @@ import '../../wind/domain/wind_models.dart';
 
 class FlightDetectorPipeline {
   final TrackConfig config;
-  final void Function(String message)? onLog;
+  final void Function(DateTime time, double lat, double lon, String reason)? onLogEvent;
   final List<LocationEntity> _buffer = [];
 
   FlightState _currentState = FlightState.groundMovement;
@@ -16,7 +16,7 @@ class FlightDetectorPipeline {
 
   FlightDetectorPipeline({
     this.config = const TrackConfig(),
-    this.onLog,
+    this.onLogEvent,
   });
 
   FlightState get currentState => _currentState;
@@ -76,7 +76,7 @@ class FlightDetectorPipeline {
         _currentState = FlightState.inFlight;
         _lastValidWindTime = now;
         _highwayStartTime = null;
-        onLog?.call("Status changed: GroundMovement -> InFlight (MidAir)");
+        onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Паттерн: Mid-Air Start");
       }
     }
   } // конец метода _checkMidAirStartPattern
@@ -92,7 +92,7 @@ class FlightDetectorPipeline {
       if (_lastValidWindTime != null) {
         if (now.difference(_lastValidWindTime!).inSeconds > config.cfvWindFailTimeoutSec) {
           disqualify = true;
-          onLog?.call("CFV KILLED: Wind Fail Timeout (No valid wind for 60s)");
+          onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Провал ветра: нет валидных данных > 60 сек");
         }
       } else {
         _lastValidWindTime = now;
@@ -104,30 +104,29 @@ class FlightDetectorPipeline {
       _highwayStartTime ??= now;
       if (now.difference(_highwayStartTime!).inSeconds > 30) {
         disqualify = true;
-        onLog?.call("CFV KILLED: Highway Rule. SOG > 90");
+        onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Трасса: SOG > 90");
       }
     } else {
       _highwayStartTime = null;
     }
 
     // 3. Фильтр перекрестка
-    if (_buffer.length >= 5) {
-      final turnWindowStart = now.subtract(const Duration(seconds: 5));
-      final turnPoints = _buffer.where((p) => p.timestamp.isAfter(turnWindowStart) || p.timestamp.isAtSameMomentAs(turnWindowStart)).toList();
+    if (point.speed < config.cfvTurnMinSog) {
+      final windowStart = now.subtract(Duration(seconds: config.cfvTurnWindowSec));
+      final turnPoints = _buffer.where((p) => p.timestamp.isAfter(windowStart)).toList();
+      
       if (turnPoints.isNotEmpty) {
-        final minSog = turnPoints.map((p) => p.speed).reduce((a, b) => a < b ? a : b);
+        double minSog = turnPoints.map((p) => p.speed).reduce((a, b) => a < b ? a : b);
         if (minSog < config.cfvTurnMinSog) {
-          double maxDelta = 0;
-          for (int i = 0; i < turnPoints.length; i++) {
-            for (int j = i + 1; j < turnPoints.length; j++) {
-              double delta = (turnPoints[i].heading - turnPoints[j].heading).abs();
-              if (delta > 180.0) delta = 360.0 - delta;
-              if (delta > maxDelta) maxDelta = delta;
-            }
+          double maxDelta = 0.0;
+          for (int i = 1; i < turnPoints.length; i++) {
+            double delta = (turnPoints[i].heading - turnPoints[i - 1].heading).abs();
+            if (delta > 180.0) delta = 360.0 - delta;
+            if (delta > maxDelta) maxDelta = delta;
           }
           if (maxDelta > 50.0) {
             disqualify = true;
-            onLog?.call("CFV KILLED: Intersection! DeltaCOG: ${maxDelta.toStringAsFixed(1)}, SOG: ${(minSog * 3.6).toStringAsFixed(1)} km/h");
+            onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Перекресток: dCOG=${maxDelta.toStringAsFixed(1)}, SOG=${(minSog * 3.6).toStringAsFixed(1)}");
           }
         }
       }
@@ -144,6 +143,7 @@ class FlightDetectorPipeline {
   } // конец метода _checkCfvDisqualification
 
   void _checkTakeoffPattern() {
+    if (_currentState == FlightState.inFlight) return; // Задание 3
     if (_buffer.isEmpty) return;
     
     final now = _buffer.last.timestamp;
@@ -181,9 +181,10 @@ class FlightDetectorPipeline {
 
     if (waitPoints.isEmpty) return;
 
-    // В окне топтания средняя скорость должна быть низкой
-    final avgWaitSpeed = waitPoints.map((p) => p.speed).reduce((a, b) => a + b) / waitPoints.length;
-    if (avgWaitSpeed > config.maxWalkSpeedMs) return;
+    // Задание 4: В окне топтания скорость SOG должна быть не более стандартного шума GPS (~1 км/ч)
+    final double maxNoiseSpeedMs = 1.0 / 3.6; // ~1 км/ч
+    bool isQuiet = waitPoints.every((p) => p.speed <= maxNoiseSpeedMs);
+    if (!isQuiet) return;
 
     // Проверяем рост высоты: текущая высота должна быть больше средней высоты топтания
     final avgWaitAltitude = waitPoints.map((p) => p.altitude).reduce((a, b) => a + b) / waitPoints.length;
@@ -192,7 +193,7 @@ class FlightDetectorPipeline {
     // Паттерн совпал!
     _flights.add(FlightRecord(start: p1));
     _currentState = FlightState.inFlight;
-    onLog?.call("Status changed: GroundMovement -> InFlight");
+    onLogEvent?.call(p1.timestamp, p1.latitude, p1.longitude, "Паттерн: Взлет");
   } // конец метода _checkTakeoffPattern
 
   void _checkLandingPattern() {
@@ -249,6 +250,6 @@ class FlightDetectorPipeline {
       _flights.last.finish = p2;
     }
     _currentState = FlightState.landing;
-    onLog?.call("Status changed to Landing");
+    onLogEvent?.call(p2.timestamp, p2.latitude, p2.longitude, "Паттерн: Посадка");
   } // конец метода _checkLandingPattern
 } // конец класса FlightDetectorPipeline

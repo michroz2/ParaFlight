@@ -131,10 +131,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                     return ListView.builder(
                       itemCount: logs.length,
                       itemBuilder: (context, index) {
+                        final event = logs[index];
+                        final timeStr = "${event.time.hour.toString().padLeft(2, '0')}:${event.time.minute.toString().padLeft(2, '0')}:${event.time.second.toString().padLeft(2, '0')}";
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2.0),
                           child: Text(
-                            logs[index],
+                            "#[${event.id}] [$timeStr] - ${event.reason}",
                             style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                           ),
                         );
@@ -317,6 +319,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                   }
                 } // конец for
                 if (markers.isEmpty) return const SizedBox.shrink();
+                return MarkerLayer(markers: markers);
+              }),
+              Builder(builder: (context) {
+                final logs = ref.watch(telemetryProvider);
+                if (logs.isEmpty) return const SizedBox.shrink();
+                final markers = logs.map((event) {
+                  return Marker(
+                    point: event.location,
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withAlpha(200),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Text(
+                        event.id.toString(),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, height: 1.0),
+                      ),
+                    ),
+                  );
+                }).toList();
                 return MarkerLayer(markers: markers);
               }),
               if (currentLocation != null)

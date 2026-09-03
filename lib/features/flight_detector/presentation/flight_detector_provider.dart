@@ -1,6 +1,7 @@
 // Версия: 0.1.0 | Цель: Провайдер детектора полета
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/location/location_state.dart';
 import '../../../core/location/location_entity.dart';
 import '../domain/flight_state.dart';
@@ -87,7 +88,9 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
   final config = ref.watch(trackConfigProvider);
   final pipeline = FlightDetectorPipeline(
     config: config,
-    onLog: (msg) => ref.read(telemetryProvider.notifier).log(msg),
+    onLogEvent: (time, lat, lon, reason) {
+      ref.read(telemetryProvider.notifier).logEvent(time, LatLng(lat, lon), reason);
+    },
   );
   
   final notifier = FlightDetectorNotifier(
@@ -111,7 +114,13 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
   ref.listen(dataSourceProvider, (previous, next) {
     if (previous != next) {
       notifier.clear();
+      ref.read(telemetryProvider.notifier).clear();
     }
+  });
+
+  ref.listen(gpxPointsProvider, (previous, next) {
+    notifier.clear();
+    ref.read(telemetryProvider.notifier).clear();
   });
 
   return notifier;

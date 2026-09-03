@@ -19,6 +19,8 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       landingConfirmTimeSec: prefs.getInt('landingConfirmTimeSec') ?? 10,
       minFlightSpeedMs: prefs.getDouble('minFlightSpeedMs') ?? 4.16,
       maxWalkSpeedMs: prefs.getDouble('maxWalkSpeedMs') ?? 1.38,
+      cfvWindFailTimeoutSec: prefs.getInt('cfvWindFailTimeoutSec') ?? 180,
+      cfvTurnWindowSec: prefs.getInt('cfvTurnWindowSec') ?? 5,
     );
   }
 
@@ -28,6 +30,8 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     int? landingConfirmTimeSec,
     double? minFlightSpeedMs,
     double? maxWalkSpeedMs,
+    int? cfvWindFailTimeoutSec,
+    int? cfvTurnWindowSec,
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
     
@@ -36,6 +40,8 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     if (landingConfirmTimeSec != null) await prefs.setInt('landingConfirmTimeSec', landingConfirmTimeSec);
     if (minFlightSpeedMs != null) await prefs.setDouble('minFlightSpeedMs', minFlightSpeedMs);
     if (maxWalkSpeedMs != null) await prefs.setDouble('maxWalkSpeedMs', maxWalkSpeedMs);
+    if (cfvWindFailTimeoutSec != null) await prefs.setInt('cfvWindFailTimeoutSec', cfvWindFailTimeoutSec);
+    if (cfvTurnWindowSec != null) await prefs.setInt('cfvTurnWindowSec', cfvTurnWindowSec);
 
     state = state.copyWith(
       takeoffWaitTimeSec: takeoffWaitTimeSec,
@@ -43,6 +49,8 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       landingConfirmTimeSec: landingConfirmTimeSec,
       minFlightSpeedMs: minFlightSpeedMs,
       maxWalkSpeedMs: maxWalkSpeedMs,
+      cfvWindFailTimeoutSec: cfvWindFailTimeoutSec,
+      cfvTurnWindowSec: cfvTurnWindowSec,
     );
   }
 } // конец класса TrackConfigNotifier
