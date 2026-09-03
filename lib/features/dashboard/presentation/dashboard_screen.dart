@@ -219,6 +219,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     // Радарная математика (расчет метров на пиксель)
     final standardRadii = <double>[
+      10,
+      25,
+      50,
       100,
       250,
       500,
