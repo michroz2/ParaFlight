@@ -25,10 +25,9 @@ class TracksManager {
 
     // Читаем манифест ассетов для копирования файлов
     try {
-      final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
       
-      final trackAssets = manifestMap.keys
+      final trackAssets = manifest.listAssets()
           .where((String key) => key.startsWith('assets/tracks/') && key.endsWith('.gpx'))
           .toList();
 
@@ -72,13 +71,13 @@ class TracksManager {
 
   Future<File?> importTrack() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['gpx'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        final File pickedFile = File(result.files.single.path!);
+      if (files.isNotEmpty && files.first.path != null) {
+        final File pickedFile = File(files.first.path!);
         final tracksDir = await getTracksDirectory();
         
         final fileName = path.basename(pickedFile.path);
