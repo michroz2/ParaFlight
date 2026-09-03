@@ -9,6 +9,10 @@ import 'data_source_settings_screen.dart';
 import 'screen_settings_screen.dart';
 import 'map_settings_screen.dart';
 
+import 'track_settings_screen.dart'; // Новое: импорт экрана трека
+
+import 'wind_settings_screen.dart'; // Новое: импорт экрана ветра
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -33,6 +37,19 @@ class SettingsScreen extends ConsumerWidget {
             }, // конец onTap
           ), // конец ListTile
           const Divider(),
+          // Новое: Элемент перехода к настройкам трека
+          ListTile(
+            leading: const Icon(Icons.timeline),
+            title: const Text('Управление треком'),
+            subtitle: const Text('Детектор полета, тайминги, пороги'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const TrackSettingsScreen()),
+              );
+            }, // конец onTap
+          ), // конец ListTile
+          const Divider(),
           // Новое: Элемент перехода к ветру
           ListTile(
             leading: const Icon(Icons.air),
@@ -40,7 +57,9 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('Чувствительность, размеры буфера'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // В будущем переход на WindSettingsScreen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const WindSettingsScreen()),
+              );
             }, // конец onTap
           ), // конец ListTile
           const Divider(),

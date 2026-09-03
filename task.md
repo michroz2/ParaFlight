@@ -11,3 +11,11 @@
 ## Валидация
 - [ ] Протестировать логику полета на симуляторе GPX.
 - [ ] Обновить walkthrough.md после завершения.
+
+## Выбор файла GPX для симулятора (Текущий спринт)
+- [x] Изменить pubspec.yaml
+- [x] Добавить папку assets/tracks и .gitignore
+- [x] Удалить mock_flight.gpx
+- [x] Создать TracksManager
+- [x] Обновить location_state.dart
+- [x] Обновить UI настроек

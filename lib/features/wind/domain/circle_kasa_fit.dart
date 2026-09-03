@@ -6,7 +6,7 @@ import 'wind_models.dart';
 class CircleKasaFit {
   /// Вычисляет параметры окружности и возвращает вектор ветра и радиус.
   /// Возвращает null, если точек недостаточно, или они лежат на прямой.
-  static WindCalculationResult? fit(List<WindDataPoint> points) {
+  static WindCalculationResult? fit(List<WindDataPoint> points, {double minRoundness = 0.1}) {
     if (points.length < 3) return null;
 
     final n = points.length;
@@ -50,6 +50,15 @@ class CircleKasaFit {
     // Если детерминант близок к нулю, точки лежат на прямой линии
     if (d.abs() < 1e-6) {
       return null;
+    }
+
+    // Расчет Индекса Круглости для отсева прямой на акселераторе
+    final t = mxx + myy;
+    if (t > 0) {
+      final roundness = (4 * d) / (t * t);
+      if (roundness < minRoundness) {
+        return null; // Траектория недостаточно "круглая"
+      }
     }
 
     final xc = ((mxz * myy) - (myz * mxy)) / (2 * d);

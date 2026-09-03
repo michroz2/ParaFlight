@@ -24,13 +24,40 @@ class WindConfig {
   /// Защищает буфер от забивания одинаковыми данными на прямой.
   final double minCogChangeDeg;
 
+  /// Минимальная круглость для отсева прямой линии на акселераторе
+  final double minRoundness;
+
   const WindConfig({
-    this.windowSizeSec = 120.0, //Время жизни одной точки в буфере. Чем больше значение, тем медленнее обновляется ветер.
-    this.minTurnAngleDeg = 30.0, //Диапазон углов в буфере, меньше которого не будет производиться вычисление ветра
-    this.minAirspeedMs = 5.55, // ~20 km/h - Минимальная собственная скорость для расчета ветра
-    this.maxAirspeedMs = 19.44, // ~70 km/h - Максимальная собственная скорость для расчета ветра
-    this.sampleIntervalSec = 0.5, // Временной фильтр (анти-джиттер)
-    this.gpxSmoothingWindow = 2, // сколько точек назад от текущей учитывать при сглаживании трека с gpx файла
-    this.minCogChangeDeg = 1.0, // Угловой фильтр: берем точку только при повороте на >= столько градусов
+    this.windowSizeSec = 120.0,
+    this.minTurnAngleDeg = 30.0,
+    this.minAirspeedMs = 5.55, // ~20 km/h
+    this.maxAirspeedMs = 19.44, // ~70 km/h
+    this.sampleIntervalSec = 0.5,
+    this.gpxSmoothingWindow = 2,
+    this.minCogChangeDeg = 1.0,
+    this.minRoundness = 0.1,
   });
+
+  WindConfig copyWith({
+    double? windowSizeSec,
+    double? minTurnAngleDeg,
+    double? minAirspeedMs,
+    double? maxAirspeedMs,
+    double? sampleIntervalSec,
+    int? gpxSmoothingWindow,
+    double? minCogChangeDeg,
+    double? minRoundness,
+  }) {
+    return WindConfig(
+      windowSizeSec: windowSizeSec ?? this.windowSizeSec,
+      minTurnAngleDeg: minTurnAngleDeg ?? this.minTurnAngleDeg,
+      minAirspeedMs: minAirspeedMs ?? this.minAirspeedMs,
+      maxAirspeedMs: maxAirspeedMs ?? this.maxAirspeedMs,
+      sampleIntervalSec: sampleIntervalSec ?? this.sampleIntervalSec,
+      gpxSmoothingWindow: gpxSmoothingWindow ?? this.gpxSmoothingWindow,
+      minCogChangeDeg: minCogChangeDeg ?? this.minCogChangeDeg,
+      minRoundness: minRoundness ?? this.minRoundness,
+    );
+  }
 }
+

@@ -9,6 +9,9 @@ import 'dart:math';
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/flight_path_state.dart';
+import '../../flight_detector/presentation/flight_detector_provider.dart'; // Новое: импорт провайдера
+import '../../flight_detector/domain/flight_state.dart';
+import '../../../core/telemetry_logger.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
@@ -95,6 +98,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
         ),
         child: Icon(icon, color: isActive ? Colors.blue : Colors.white, size: 36),
       ),
+    );
+  }
+
+  void _showTelemetrySheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Telemetry Logs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  TextButton(
+                    onPressed: () => ref.read(telemetryProvider.notifier).clear(),
+                    child: const Text('Clear'),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final logs = ref.watch(telemetryProvider);
+                    if (logs.isEmpty) return const Center(child: Text('No logs'));
+                    return ListView.builder(
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Text(
+                            logs[index],
+                            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -212,14 +264,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
               ),
               if (track.isNotEmpty)
                 PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: track,
-                      color: Colors.blue,
-                      strokeWidth: 4.0,
-                    ),
-                  ],
+                  polylines: track.map((segment) {
+                    return Polyline(
+                      points: segment.points,
+                      color: segment.isFlight ? Colors.blue : Colors.grey,
+                      strokeWidth: segment.isFlight ? 4.0 : 2.0,
+                    );
+                  }).toList(),
                 ),
+              // Новое: слой маркеров для старта и финиша
+              Builder(builder: (context) {
+                final detectorState = ref.watch(flightDetectorProvider);
+                final markers = <Marker>[];
+                final flights = detectorState.flights;
+                for (int i = 0; i < flights.length; i++) {
+                  final flight = flights[i];
+                  // Маркер старта: первый полет 'S', остальные 'R'. Забытый старт в воздухе - 'O'
+                  final startChar = flight.isMidAirStart ? 'O' : (i == 0 ? 'S' : 'R');
+                  markers.add(Marker(
+                    point: LatLng(flight.start.latitude, flight.start.longitude),
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(200),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.blue, width: 2),
+                      ),
+                      child: Text(startChar, style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 14, height: 1.0)),
+                    ),
+                  ));
+
+                  // Маркер финиша (если есть)
+                  if (flight.finish != null) {
+                    markers.add(Marker(
+                      point: LatLng(flight.finish!.latitude, flight.finish!.longitude),
+                      width: 20,
+                      height: 20,
+                      alignment: Alignment.center,
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(200),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.blue, width: 2),
+                        ),
+                        child: const Text('X', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 14, height: 1.0)),
+                      ),
+                    ));
+                  }
+                } // конец for
+                if (markers.isEmpty) return const SizedBox.shrink();
+                return MarkerLayer(markers: markers);
+              }),
               if (currentLocation != null)
                 MarkerLayer(
                   markers: [
@@ -236,25 +335,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
           ),
           
           // Фиксированный по центру экранный круг ветра
-          if (wind != null)
-            IgnorePointer(
-              child: Center(
-                child: SizedBox(
-                  width: windCircleDiameter + 150,
-                  height: windCircleDiameter + 150,
-                  child: CustomPaint(
-                    painter: WindCirclePainter(
-                      windDirection: wind.windDirection,
-                      windSpeed: wind.windSpeed,
-                      mapRotation: _rotationMode == MapRotationMode.heading ? (currentLocation?.heading ?? 0.0) : 0.0,
-                      diameter: windCircleDiameter,
-                      scaleText: scaleText,
-                      showNorthPointer: _rotationMode == MapRotationMode.heading,
-                    ),
+          IgnorePointer(
+            child: Center(
+              child: SizedBox(
+                width: windCircleDiameter + 150,
+                height: windCircleDiameter + 150,
+                child: CustomPaint(
+                  painter: WindCirclePainter(
+                    windDirection: ref.watch(flightDetectorProvider).state == FlightState.inFlight ? wind?.windDirection : null,
+                    windSpeed: ref.watch(flightDetectorProvider).state == FlightState.inFlight ? wind?.windSpeed : null,
+                    mapRotation: _rotationMode == MapRotationMode.heading ? (currentLocation?.heading ?? 0.0) : 0.0,
+                    diameter: windCircleDiameter,
+                    scaleText: scaleText,
+                    showNorthPointer: _rotationMode == MapRotationMode.heading,
                   ),
                 ),
               ),
             ),
+          ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(4.0),
@@ -348,7 +446,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
               ),
             ),
           ),
-          if (wind != null)
+          if (wind != null && ref.watch(flightDetectorProvider).state == FlightState.inFlight)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -528,6 +626,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                         style: TextStyle(color: Colors.black87, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                       ),
                       const Spacer(),
+                      IconButton(
+                        iconSize: 32,
+                        icon: const Icon(Icons.bug_report, color: Colors.black87),
+                        onPressed: () => _showTelemetrySheet(context),
+                      ),
                       IconButton(
                         iconSize: 32,
                         icon: const Icon(Icons.settings, color: Colors.black87),

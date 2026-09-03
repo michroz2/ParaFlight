@@ -1,4 +1,4 @@
-// Версия: 0.1.1 | Цель: Контроллер воспроизведения симуляции
+// Версия: 0.6.0 | Цель: Контроллер воспроизведения симуляции
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,4 +98,11 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       _playNext();
     }); // конец замыкания Timer
   } // конец метода _playNext
+
+  void reset() {
+    _timer?.cancel();
+    _points = [];
+    _currentIndex = 0;
+    state = PlaybackState();
+  } // конец метода reset
 } // конец класса PlaybackNotifier

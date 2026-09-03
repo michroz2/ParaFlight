@@ -91,7 +91,7 @@ class WindPipeline {
     }
 
     // 5. Вычисление ветра через математическое ядро
-    final result = CircleKasaFit.fit(_buffer);
+    final result = CircleKasaFit.fit(_buffer, minRoundness: config.minRoundness);
 
     // 6. Валидация (Edge cases)
     if (result != null) {

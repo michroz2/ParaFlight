@@ -1,16 +1,76 @@
-// Версия: 0.5.0 | Цель: Экран выбора источника данных (GPS/Симулятор)
+﻿// Версия: 0.6.0 | Цель: Экран выбора источника данных (GPS/Симулятор)
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as path;
 
 import '../../../core/location/location_state.dart';
+import '../../../core/location/tracks_manager.dart';
 
 class DataSourceSettingsScreen extends ConsumerWidget {
   const DataSourceSettingsScreen({super.key});
 
+  void _showTrackPicker(BuildContext context, WidgetRef ref) async {
+    final manager = ref.read(tracksManagerProvider);
+    final tracks = await manager.getAvailableTracks();
+    
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('Выберите трек для симуляции', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.file_download),
+                  title: const Text('Импортировать новый файл .gpx'),
+                  onTap: () async {
+                    final imported = await manager.importTrack();
+                    if (imported != null) {
+                      ref.read(selectedGpxFileProvider.notifier).setFile(imported.path);
+                      if (context.mounted) Navigator.pop(ctx);
+                    }
+                  },
+                ),
+                const Divider(),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: tracks.length,
+                    itemBuilder: (context, index) {
+                      final file = tracks[index];
+                      final name = path.basename(file.path);
+                      return ListTile(
+                        leading: const Icon(Icons.map),
+                        title: Text(name),
+                        onTap: () {
+                          ref.read(selectedGpxFileProvider.notifier).setFile(file.path);
+                          if (context.mounted) Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentSource = ref.watch(dataSourceProvider);
+    final selectedFile = ref.watch(selectedGpxFileProvider);
+    
+    final fileName = selectedFile != null ? path.basename(selectedFile) : 'Файл не выбран';
 
     return Scaffold(
       appBar: AppBar(
@@ -19,20 +79,35 @@ class DataSourceSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         children: [
-          // Новое: Радиокнопка Симулятора
           RadioListTile<DataSource>(
-            title: const Text('Симулятор (mock_flight.gpx)'),
-            subtitle: const Text('Воспроизведение записанного трека с симуляцией времени'),
+            title: const Text('Симулятор GPX'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Воспроизведение записанного трека с симуляцией времени'),
+                if (currentSource == DataSource.simulator) ...[
+                  const SizedBox(height: 8),
+                  Text('Текущий трек: \', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextButton.icon(
+                    onPressed: () => _showTrackPicker(context, ref),
+                    icon: const Icon(Icons.folder_open),
+                    label: const Text('Выбрать другой трек'),
+                  ),
+                ]
+              ],
+            ),
             value: DataSource.simulator,
             groupValue: currentSource,
             onChanged: (DataSource? value) {
               if (value != null) {
                 ref.read(dataSourceProvider.notifier).setSource(value);
-              } // конец if
-            }, // конец onChanged
-          ), // конец RadioListTile
+                if (selectedFile == null || selectedFile.isEmpty) {
+                  _showTrackPicker(context, ref);
+                }
+              }
+            },
+          ),
 
-          // Новое: Радиокнопка встроенного GPS
           RadioListTile<DataSource>(
             title: const Text('Встроенный GPS смартфона'),
             subtitle: const Text('Использование аппаратного датчика геолокации устройства'),
@@ -41,11 +116,11 @@ class DataSourceSettingsScreen extends ConsumerWidget {
             onChanged: (DataSource? value) {
               if (value != null) {
                 ref.read(dataSourceProvider.notifier).setSource(value);
-              } // конец if
-            }, // конец onChanged
-          ), // конец RadioListTile
+              }
+            },
+          ),
         ],
-      ), // конец ListView
-    ); // конец Scaffold
-  } // конец метода build
-} // конец класса DataSourceSettingsScreen
+      ),
+    );
+  }
+}

@@ -4,10 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/location/location_state.dart';
 import '../../../core/location/location_entity.dart';
 import '../domain/wind_models.dart';
-import '../application/wind_pipeline.dart';
+import '../application/wind_pipeline.dart'; // Восстановленный импорт
 
-final windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>((ref) {
-  final pipeline = WindPipeline();
+import '../../flight_detector/presentation/flight_detector_provider.dart';
+import '../../flight_detector/domain/flight_state.dart';
+import '../../flight_detector/presentation/track_config_provider.dart';
+import '../../settings/application/wind_config_provider.dart';
+
+final StateNotifierProvider<WindNotifier, WindCalculationResult?> windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>((ref) {
+  final config = ref.watch(windConfigProvider);
+  final pipeline = WindPipeline(config: config);
   
   final notifier = WindNotifier(
     pipeline: pipeline,
@@ -18,12 +24,18 @@ final windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>
   // Подписываемся на изменения геолокации
   ref.listen(locationProvider, (previous, asyncLocation) {
     final location = asyncLocation.valueOrNull;
+    
     if (location != null) {
-      notifier.updateLocation(
-        location.timestamp,
-        location.speed,
-        location.heading,
-        ref.read(dataSourceProvider) == DataSource.simulator,
+      final flightState = ref.read(flightDetectorProvider).state;
+      final trackConfig = ref.read(trackConfigProvider);
+      
+      notifier.updateLocationWithLogic(
+        timestamp: location.timestamp,
+        speed: location.speed,
+        heading: location.heading,
+        isSimulator: ref.read(dataSourceProvider) == DataSource.simulator,
+        flightState: flightState,
+        cfvMinFlightSog: trackConfig.cfvMinFlightSog,
       );
     }
   });
@@ -58,11 +70,50 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
     state = null;
   } // конец метода clear
 
-  void updateLocation(DateTime timestamp, double speed, double heading, bool isSimulator) {
+  bool _isPaused = false;
+  DateTime? _activeStartTime;
+
+  void updateLocationWithLogic({
+    required DateTime timestamp,
+    required double speed,
+    required double heading,
+    required bool isSimulator,
+    required FlightState flightState,
+    required double cfvMinFlightSog,
+  }) {
+    if (flightState == FlightState.inFlight) {
+      _isPaused = false;
+      _activeStartTime = null; // сброс таймера таймаута
+    } else {
+      // Логика запуска на земле (поиск Mid-Air Start)
+      if (_isPaused) {
+        if (speed < 1.0) { // SOG упал к нулю (менее 1 м/с) - сбрасываем блокировку
+          _isPaused = false;
+          _activeStartTime = null;
+        }
+      } else {
+        if (speed > cfvMinFlightSog) {
+          _activeStartTime ??= timestamp;
+          // Если мы едем больше 3 минут и не взлетели - это машина, пауза
+          if (timestamp.difference(_activeStartTime!).inSeconds > 180) {
+            _isPaused = true;
+            clear();
+            return;
+          }
+        } else {
+          // Если скорость упала, сбрасываем таймер
+          _activeStartTime = null;
+          clear();
+          return;
+        }
+      }
+    }
+
+    if (_isPaused) return;
+
     bool isJump = false;
     if (_lastTimestamp != null) {
       final diff = timestamp.difference(_lastTimestamp!).inMilliseconds;
-      // Если время скакнуло назад (diff < 0) или сильно вперед (> 2 секунд)
       if (diff < 0 || diff > 2000) {
         isJump = true;
       }
@@ -74,7 +125,6 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
       
       WindCalculationResult? latestResult;
       
-      // Восстанавливаем буфер из истории при перемотке ТОЛЬКО в режиме симулятора
       if (isSimulator) {
         final allPoints = _getPoints();
         final currentIndex = _getCurrentIndex();
@@ -88,10 +138,10 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
             if (p.timestamp.isAfter(startTime) || p.timestamp.isAtSameMomentAs(startTime)) {
               final res = _pipeline.processLocation(p.timestamp, p.speed, p.heading);
               if (res != null) latestResult = res;
-            } // конец if
-          } // конец for
-        } // конец if
-      } // конец if
+            }
+          }
+        }
+      }
       
       state = latestResult;
     } else {
@@ -99,6 +149,6 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
       if (result != null) {
         state = result;
       }
-    } // конец if-else
-  } // конец метода updateLocation
+    }
+  } // конец метода updateLocationWithLogic
 } // конец класса WindNotifier

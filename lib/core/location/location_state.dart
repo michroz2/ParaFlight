@@ -1,4 +1,6 @@
-// Версия: 0.1.1 | Цель: Провайдеры локации и состояния GPX
+﻿// Версия: 0.6.0 | Цель: Провайдеры локации и состояния GPX
+
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -18,14 +20,50 @@ import '../../features/wind/domain/wind_config.dart';
 // Новое: импорты для плеера
 import 'playback_state.dart';
 import 'playback_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Новое: Провайдер для PlaybackNotifier
+// Новое: Провайдер выбранного GPX файла
+final selectedGpxFileProvider = StateNotifierProvider<SelectedGpxFileNotifier, String?>((ref) {
+  final prefs = ref.watch(preferencesProvider);
+  return SelectedGpxFileNotifier(prefs);
+});
+
+class SelectedGpxFileNotifier extends StateNotifier<String?> {
+  final SharedPreferences _prefs;
+  static const _key = 'selected_gpx_file';
+
+  SelectedGpxFileNotifier(this._prefs) : super(_prefs.getString(_key));
+
+  void setFile(String path) {
+    state = path;
+    _prefs.setString(_key, path);
+  }
+}
+
+// Провайдер для PlaybackNotifier
 final playbackProvider = NotifierProvider<PlaybackNotifier, PlaybackState>(() {
   return PlaybackNotifier();
 }); // конец playbackProvider
 
 final gpxPointsProvider = StreamProvider<GpxParseState>((ref) async* {
-  final xmlString = await rootBundle.loadString('assets/mock_flight.gpx', cache: false);
+  final filePath = ref.watch(selectedGpxFileProvider);
+  
+  // Сбрасываем плеер при смене трека
+  Future.microtask(() {
+    ref.read(playbackProvider.notifier).reset();
+  });
+
+  if (filePath == null || filePath.isEmpty) {
+    yield GpxParseState(progress: 0.0);
+    return;
+  } // конец if
+  
+  final file = File(filePath);
+  if (!await file.exists()) {
+    throw Exception('Файл трека не найден: $filePath');
+  } // конец if
+
+  final xmlString = await file.readAsString();
   const config = WindConfig();
   
   final receivePort = ReceivePort();
@@ -50,13 +88,13 @@ final gpxPointsProvider = StreamProvider<GpxParseState>((ref) async* {
       receivePort.close();
       throw Exception(message.toString());
     }
-  }
-});
+  } // конец for
+}); // конец gpxPointsProvider
 
-// Новое: Перечисление источников данных
+// Перечисление источников данных
 enum DataSource { simulator, internalGps }
 
-// Новое: Провайдер текущего источника (всегда стартует с внутреннего GPS)
+// Провайдер текущего источника (всегда стартует с внутреннего GPS)
 class DataSourceNotifier extends StateNotifier<DataSource> {
   DataSourceNotifier() : super(DataSource.internalGps);
 
@@ -68,7 +106,8 @@ class DataSourceNotifier extends StateNotifier<DataSource> {
 final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>((ref) {
   return DataSourceNotifier();
 });
-// Новое: Провайдер реального GPS через Geolocator
+
+// Провайдер реального GPS через Geolocator
 final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   bool serviceEnabled;
   LocationPermission permission;
@@ -107,7 +146,7 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   }); // конец map
 }); // конец realGpsProvider
 
-// Изменение: locationProvider теперь возвращает AsyncValue, чтобы UI видел ошибки (например, если нет прав)
+// locationProvider теперь возвращает AsyncValue, чтобы UI видел ошибки (например, если нет прав)
 final locationProvider = Provider<AsyncValue<LocationEntity?>>((ref) {
   final dataSource = ref.watch(dataSourceProvider);
   
