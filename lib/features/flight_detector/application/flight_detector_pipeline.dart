@@ -58,6 +58,7 @@ class FlightDetectorPipeline {
   } // конец метода processLocation
 
   void _checkMidAirStartPattern(LocationEntity point) {
+    if (_currentState == FlightState.inFlight) return;
     if (_buffer.isEmpty) return;
 
     final now = point.timestamp;
