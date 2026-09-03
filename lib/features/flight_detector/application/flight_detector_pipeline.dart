@@ -92,7 +92,7 @@ class FlightDetectorPipeline {
       if (_lastValidWindTime != null) {
         if (now.difference(_lastValidWindTime!).inSeconds > config.cfvWindFailTimeoutSec) {
           disqualify = true;
-          onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Провал ветра: нет валидных данных > 60 сек");
+          onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Провал ветра: нет валидных данных > ${config.cfvWindFailTimeoutSec} сек");
         }
       } else {
         _lastValidWindTime = now;
