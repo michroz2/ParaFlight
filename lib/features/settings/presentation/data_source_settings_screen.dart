@@ -1,4 +1,4 @@
-﻿// Версия: 0.6.0 | Цель: Экран выбора источника данных (GPS/Симулятор)
+// Версия: 0.6.1 | Цель: Экран выбора источника данных (GPS/Симулятор)
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -87,7 +87,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                 const Text('Воспроизведение записанного трека с симуляцией времени'),
                 if (currentSource == DataSource.simulator) ...[
                   const SizedBox(height: 8),
-                  Text('Текущий трек: \', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Текущий трек: $fileName', style: const TextStyle(fontWeight: FontWeight.bold)),
                   TextButton.icon(
                     onPressed: () => _showTrackPicker(context, ref),
                     icon: const Icon(Icons.folder_open),
