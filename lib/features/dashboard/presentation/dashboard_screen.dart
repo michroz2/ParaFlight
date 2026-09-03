@@ -566,7 +566,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                       onTap: () {
                         double nextSpeed = playbackState.speedFactor == 1.0 ? 2.0 :
                                            playbackState.speedFactor == 2.0 ? 5.0 :
-                                           playbackState.speedFactor == 5.0 ? 10.0 : 1.0;
+                                           playbackState.speedFactor == 5.0 ? 10.0 :
+                                           playbackState.speedFactor == 10.0 ? 20.0 : 1.0;
                         playbackNotifier.setSpeed(nextSpeed);
                       },
                       child: Container(
