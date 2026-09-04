@@ -20,11 +20,20 @@ class GpxWriter {
         "${time.hour.toString().padLeft(2, '0')}${time.minute.toString().padLeft(2, '0')}";
   }
 
-  static String _generateGpxString(List<LocationEntity> points) {
+  static String _generateGpxString(
+    List<LocationEntity> points,
+    String trackName,
+  ) {
     final sb = StringBuffer();
     sb.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    sb.writeln('<gpx version="1.1" creator="ParaFlight">');
+    sb.writeln(
+      '<gpx version="1.1" creator="ParaFlight"\n'
+      '  xmlns="http://www.topografix.com/GPX/1/1"\n'
+      '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n'
+      '  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">',
+    );
     sb.writeln('  <trk>');
+    sb.writeln('    <name>$trackName</name>');
     sb.writeln('    <trkseg>');
     for (final point in points) {
       sb.writeln(
@@ -55,18 +64,20 @@ class GpxWriter {
 
     if (flights.isEmpty) {
       final endTime = rawPoints.last.timestamp;
-      final fileName = 'PF${_formatDate(endTime)}.gpx';
+      final trackName = 'PF${_formatDate(endTime)}';
+      final fileName = '$trackName.gpx';
       final file = File(p.join(dir.path, fileName));
-      await file.writeAsString(_generateGpxString(rawPoints));
+      await file.writeAsString(_generateGpxString(rawPoints, trackName));
       return [file.path];
     }
 
     if (!cleanUpExtra && !splitFlights) {
       final lastFlight = flights.last;
       final endTime = lastFlight.finish?.timestamp ?? rawPoints.last.timestamp;
-      final fileName = 'PF${_formatDate(endTime)}.gpx';
+      final trackName = 'PF${_formatDate(endTime)}';
+      final fileName = '$trackName.gpx';
       final file = File(p.join(dir.path, fileName));
-      await file.writeAsString(_generateGpxString(rawPoints));
+      await file.writeAsString(_generateGpxString(rawPoints, trackName));
       return [file.path];
     }
 
@@ -178,16 +189,18 @@ class GpxWriter {
 
       final endTime = flight.finish?.timestamp ?? segmentPoints.last.timestamp;
 
-      String fileName = 'PF${_formatDate(endTime)}.gpx';
+      String trackName = 'PF${_formatDate(endTime)}';
+      String fileName = '$trackName.gpx';
       File file = File(p.join(dir.path, fileName));
       int copyIdx = 1;
       while (await file.exists()) {
-        fileName = 'PF${_formatDate(endTime)}_$copyIdx.gpx';
+        trackName = 'PF${_formatDate(endTime)}_$copyIdx';
+        fileName = '$trackName.gpx';
         file = File(p.join(dir.path, fileName));
         copyIdx++;
       }
 
-      await file.writeAsString(_generateGpxString(segmentPoints));
+      await file.writeAsString(_generateGpxString(segmentPoints, trackName));
       savedFiles.add(file.path);
     }
 

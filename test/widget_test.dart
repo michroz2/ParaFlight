@@ -27,7 +27,7 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'ParaFlight',
       packageName: 'com.example.paraflight',
-      version: '1.8.0',
+      version: '1.15.0',
       buildNumber: '1',
       buildSignature: '',
     );

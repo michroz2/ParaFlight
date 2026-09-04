@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0] - 2026-09-04
+### Added
+- Added strict standard GPX 1.1 namespaces and track name support to GPX exports.
+
 ## [1.14.1] - 2026-09-04
 ### Fixed
 - Исправлено отображение Vz на Дашборде (ранее значение всегда было жестко задано как 0.0 из-за ошибки слияния).
