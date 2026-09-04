@@ -27,14 +27,17 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
         currentLocation: _points.first,
         totalDuration: totalDuration,
         currentDuration: Duration.zero,
+        isPlaying: false,
+        hasStarted: false,
       );
     } // конец if
-    
-    _playNext();
   } // конец метода init
 
   void togglePlay() {
-    state = state.copyWith(isPlaying: !state.isPlaying);
+    state = state.copyWith(
+      isPlaying: !state.isPlaying,
+      hasStarted: true,
+    );
     if (state.isPlaying) {
       _playNext();
     } else {

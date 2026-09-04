@@ -372,7 +372,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.paraflight',
                 ),
-                if (track.isNotEmpty)
+                if (!playbackState.hasStarted && gpxState != null && dataSource == DataSource.gpxTrack)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: gpxState.map((p) => LatLng(p.latitude, p.longitude)).toList(),
+                        color: Colors.purple,
+                        strokeWidth: 3.0,
+                      )
+                    ],
+                  ),
+                if ((playbackState.hasStarted || dataSource == DataSource.internalGps) && track.isNotEmpty)
                   PolylineLayer(
                     polylines: track.map((segment) {
                       return Polyline(
@@ -383,21 +393,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     }).toList(),
                   ),
                 // Новое: слой маркеров для старта и финиша
-                Builder(
-                  builder: (context) {
-                    final detectorState = ref.watch(flightDetectorProvider);
-                    final markers = <Marker>[];
-                    final flights = detectorState.flights;
-                    for (int i = 0; i < flights.length; i++) {
-                      final flight = flights[i];
-                      // Маркер старта: первый полет 'S', остальные 'R'. Забытый старт в воздухе - 'O'
-                      final startChar = flight.isMidAirStart
-                          ? 'O'
-                          : (i == 0 ? 'S' : 'R');
-                      markers.add(
-                        Marker(
-                          point: LatLng(
-                            flight.start.latitude,
+                if (playbackState.hasStarted || dataSource == DataSource.internalGps)
+                  Builder(
+                    builder: (context) {
+                      final detectorState = ref.watch(flightDetectorProvider);
+                      final markers = <Marker>[];
+                      final flights = detectorState.flights;
+                      for (int i = 0; i < flights.length; i++) {
+                        final flight = flights[i];
+                        // Маркер старта: первый полет 'S', остальные 'R'. Забытый старт в воздухе - 'O'
+                        final startChar = flight.isMidAirStart
+                            ? 'O'
+                            : (i == 0 ? 'S' : 'R');
+                        markers.add(
+                          Marker(
+                            point: LatLng(
+                              flight.start.latitude,
                             flight.start.longitude,
                           ),
                           width: 20,
@@ -462,11 +473,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     return MarkerLayer(markers: markers);
                   },
                 ),
-                Builder(
-                  builder: (context) {
-                    final config = ref.watch(trackConfigProvider);
-                    if (!config.enableDebugMarkers) return const SizedBox.shrink();
-                    final logs = ref.watch(telemetryProvider);
+                if (playbackState.hasStarted || dataSource == DataSource.internalGps)
+                  Builder(
+                    builder: (context) {
+                      final config = ref.watch(trackConfigProvider);
+                      if (!config.enableDebugMarkers) return const SizedBox.shrink();
+                      final logs = ref.watch(telemetryProvider);
                     if (logs.isEmpty) return const SizedBox.shrink();
                     final markers = logs.map((event) {
                       return Marker(

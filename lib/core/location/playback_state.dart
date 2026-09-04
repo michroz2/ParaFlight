@@ -6,6 +6,7 @@ import 'location_entity.dart';
 class PlaybackState {
   final LocationEntity? currentLocation;
   final bool isPlaying;
+  final bool hasStarted;
   final double speedFactor;
   final double progress;
   // Новое: Индекс текущей точки для обрезки пути
@@ -16,7 +17,8 @@ class PlaybackState {
 
   PlaybackState({
     this.currentLocation,
-    this.isPlaying = true,
+    this.isPlaying = false,
+    this.hasStarted = false,
     this.speedFactor = 1.0,
     this.progress = 0.0,
     this.currentIndex = 0,
@@ -27,6 +29,7 @@ class PlaybackState {
   PlaybackState copyWith({
     LocationEntity? currentLocation,
     bool? isPlaying,
+    bool? hasStarted,
     double? speedFactor,
     double? progress,
     int? currentIndex,
@@ -36,6 +39,7 @@ class PlaybackState {
     return PlaybackState(
       currentLocation: currentLocation ?? this.currentLocation,
       isPlaying: isPlaying ?? this.isPlaying,
+      hasStarted: hasStarted ?? this.hasStarted,
       speedFactor: speedFactor ?? this.speedFactor,
       progress: progress ?? this.progress,
       currentIndex: currentIndex ?? this.currentIndex,
