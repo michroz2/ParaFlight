@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.2] - 2026-09-05
+### Fixed
+- Fixed map starting at (0, 0) and missing plane marker by using `getLastKnownPosition` before stream starts.
+- Added missing `GeolocatorLocationService` declaration to AndroidManifest to prevent ForegroundService crash on startup.
+
 ## [1.15.1] - 2026-09-04
 ### Fixed
 - Fixed background location tracking on Android by properly initializing `Geolocator` with `AndroidSettings` and `ForegroundNotificationConfig`.

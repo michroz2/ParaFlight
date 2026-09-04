@@ -158,6 +158,22 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     );
   }
 
+  try {
+    final lastPosition = await Geolocator.getLastKnownPosition();
+    if (lastPosition != null) {
+      yield LocationEntity(
+        latitude: lastPosition.latitude,
+        longitude: lastPosition.longitude,
+        altitude: lastPosition.altitude,
+        speed: lastPosition.speed,
+        heading: lastPosition.heading,
+        timestamp: lastPosition.timestamp ?? DateTime.now(),
+      );
+    }
+  } catch (_) {
+    // Игнорируем ошибку получения последней позиции
+  }
+
   yield* Geolocator.getPositionStream(
     locationSettings: locationSettings,
   ).map((Position position) {
