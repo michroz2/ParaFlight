@@ -242,8 +242,8 @@ class TrackSettingsScreen extends ConsumerWidget {
               child: Slider(
                 value: config.gpsCleanupExtraSec.toDouble(),
                 min: 0,
-                max: 10,
-                divisions: 10,
+                max: 60,
+                divisions: 60,
                 label: config.gpsCleanupExtraSec.toString(),
                 onChanged: (value) =>
                     notifier.updateConfig(gpsCleanupExtraSec: value.toInt()),
