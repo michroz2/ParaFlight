@@ -372,11 +372,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.paraflight',
                 ),
-                if (!playbackState.hasStarted && gpxState != null && dataSource == DataSource.gpxTrack)
+                if (!playbackState.hasStarted && gpxState != null && gpxState.points != null && dataSource == DataSource.simulator)
                   PolylineLayer(
                     polylines: [
                       Polyline(
-                        points: gpxState.map((p) => LatLng(p.latitude, p.longitude)).toList(),
+                        points: gpxState.points!.map((p) => LatLng(p.latitude, p.longitude)).toList(),
                         color: Colors.purple,
                         strokeWidth: 3.0,
                       )
