@@ -45,13 +45,15 @@ class FlightDetectorPipeline {
       if (_currentState == FlightState.landing) {
          _currentState = FlightState.groundMovement;
       }
-      _checkTakeoffPattern();
-      if (_currentState == FlightState.groundMovement) {
+      if (config.enableAutoTakeoff) {
+        _checkTakeoffPattern();
+      }
+      if (_currentState == FlightState.groundMovement && config.enableMidAirStart) {
         _checkMidAirStartPattern(point);
       }
     } else if (_currentState == FlightState.inFlight) {
       _checkCfvDisqualification(point, currentWind);
-      if (_currentState == FlightState.inFlight) {
+      if (_currentState == FlightState.inFlight && config.enableAutoLanding) {
         _checkLandingPattern();
       }
     } // конец if-else
@@ -87,47 +89,53 @@ class FlightDetectorPipeline {
     final now = point.timestamp;
 
     // 1. Провал по ветру
-    if (currentWind != null && currentWind.airspeed >= 6.94 && currentWind.airspeed <= 18.0) { // 25-65 км/ч
-      _lastValidWindTime = now;
-    } else {
-      if (_lastValidWindTime != null) {
-        if (now.difference(_lastValidWindTime!).inSeconds > config.cfvWindFailTimeoutSec) {
-          disqualify = true;
-          onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Провал ветра: нет валидных данных > ${config.cfvWindFailTimeoutSec} сек");
-        }
-      } else {
+    if (config.enableCfvWindFail) {
+      if (currentWind != null && currentWind.airspeed >= 6.94 && currentWind.airspeed <= 18.0) { // 25-65 км/ч
         _lastValidWindTime = now;
+      } else {
+        if (_lastValidWindTime != null) {
+          if (now.difference(_lastValidWindTime!).inSeconds > config.cfvWindFailTimeoutSec) {
+            disqualify = true;
+            onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Провал ветра: нет валидных данных > ${config.cfvWindFailTimeoutSec} сек");
+          }
+        } else {
+          _lastValidWindTime = now;
+        }
       }
     }
 
     // 2. Правило трассы
-    if (point.speed > config.cfvHighwaySog) {
-      _highwayStartTime ??= now;
-      if (now.difference(_highwayStartTime!).inSeconds > 30) {
-        disqualify = true;
-        onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Трасса: SOG > 90");
+    if (config.enableCfvHighway && !disqualify) {
+      if (point.speed > config.cfvHighwaySog) {
+        _highwayStartTime ??= now;
+        if (now.difference(_highwayStartTime!).inSeconds > 30) {
+          disqualify = true;
+          onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Трасса: SOG > 90");
+        }
+      } else {
+        _highwayStartTime = null;
       }
-    } else {
-      _highwayStartTime = null;
     }
 
     // 3. Фильтр перекрестка
-    if (point.speed < config.cfvTurnMinSog) {
-      final windowStart = now.subtract(Duration(seconds: config.cfvTurnWindowSec));
-      final turnPoints = _buffer.where((p) => p.timestamp.isAfter(windowStart)).toList();
-      
-      if (turnPoints.isNotEmpty) {
-        double minSog = turnPoints.map((p) => p.speed).reduce((a, b) => a < b ? a : b);
-        if (minSog < config.cfvTurnMinSog) {
-          double maxDelta = 0.0;
-          for (int i = 1; i < turnPoints.length; i++) {
-            double delta = (turnPoints[i].heading - turnPoints[i - 1].heading).abs();
-            if (delta > 180.0) delta = 360.0 - delta;
-            if (delta > maxDelta) maxDelta = delta;
-          }
-          if (maxDelta > 50.0) {
-            disqualify = true;
-            onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Перекресток: dCOG=${maxDelta.toStringAsFixed(1)}, SOG=${(minSog * 3.6).toStringAsFixed(1)}");
+    if (config.enableCfvIntersection && !disqualify) {
+      if (point.speed < config.cfvTurnMinSog) {
+        final windowStart = now.subtract(Duration(seconds: config.cfvTurnWindowSec));
+        final turnPoints = _buffer.where((p) => p.timestamp.isAfter(windowStart)).toList();
+        
+        if (turnPoints.isNotEmpty) {
+          double minSog = turnPoints.map((p) => p.speed).reduce((a, b) => a < b ? a : b);
+          if (minSog < config.cfvTurnMinSog) {
+            double maxDelta = 0.0;
+            for (int i = 1; i < turnPoints.length; i++) {
+              double delta = (turnPoints[i].heading - turnPoints[i - 1].heading).abs();
+              if (delta > 180.0) delta = 360.0 - delta;
+              if (delta > maxDelta) maxDelta = delta;
+            }
+            if (maxDelta > 50.0) {
+              disqualify = true;
+              onLogEvent?.call(point.timestamp, point.latitude, point.longitude, "Перекресток: dCOG=${maxDelta.toStringAsFixed(1)}, SOG=${(minSog * 3.6).toStringAsFixed(1)}");
+            }
           }
         }
       }

@@ -17,6 +17,40 @@ class TrackSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          const Text('Автоматика', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Авто-старт с земли'),
+            value: config.enableAutoTakeoff,
+            onChanged: (val) => notifier.updateConfig(enableAutoTakeoff: val),
+          ),
+          SwitchListTile(
+            title: const Text('Авто-старт в воздухе (Mid-Air)'),
+            value: config.enableMidAirStart,
+            onChanged: (val) => notifier.updateConfig(enableMidAirStart: val),
+          ),
+          SwitchListTile(
+            title: const Text('Авто-посадка'),
+            value: config.enableAutoLanding,
+            onChanged: (val) => notifier.updateConfig(enableAutoLanding: val),
+          ),
+          SwitchListTile(
+            title: const Text('Авто-стоп по ветру (CFV)'),
+            value: config.enableCfvWindFail,
+            onChanged: (val) => notifier.updateConfig(enableCfvWindFail: val),
+          ),
+          SwitchListTile(
+            title: const Text('Авто-стоп по маневрам (CFV)'),
+            value: config.enableCfvIntersection,
+            onChanged: (val) => notifier.updateConfig(enableCfvIntersection: val),
+          ),
+          SwitchListTile(
+            title: const Text('Авто-стоп по трассе (CFV)'),
+            value: config.enableCfvHighway,
+            onChanged: (val) => notifier.updateConfig(enableCfvHighway: val),
+          ),
+          
+          const Divider(height: 32),
           const Text(
             'Задержки',
             style: TextStyle(

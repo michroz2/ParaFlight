@@ -14,6 +14,12 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
   void _loadFromPrefs() {
     final prefs = ref.read(sharedPreferencesProvider);
     state = TrackConfig(
+      enableAutoTakeoff: prefs.getBool('enableAutoTakeoff') ?? true,
+      enableMidAirStart: prefs.getBool('enableMidAirStart') ?? true,
+      enableAutoLanding: prefs.getBool('enableAutoLanding') ?? true,
+      enableCfvWindFail: prefs.getBool('enableCfvWindFail') ?? true,
+      enableCfvIntersection: prefs.getBool('enableCfvIntersection') ?? true,
+      enableCfvHighway: prefs.getBool('enableCfvHighway') ?? true,
       takeoffWaitTimeSec: prefs.getInt('takeoffWaitTimeSec') ?? 5,
       takeoffFlightTimeSec: prefs.getInt('takeoffFlightTimeSec') ?? 15,
       landingConfirmTimeSec: prefs.getInt('landingConfirmTimeSec') ?? 10,
@@ -27,6 +33,12 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
   }
 
   Future<void> updateConfig({
+    bool? enableAutoTakeoff,
+    bool? enableMidAirStart,
+    bool? enableAutoLanding,
+    bool? enableCfvWindFail,
+    bool? enableCfvIntersection,
+    bool? enableCfvHighway,
     int? takeoffWaitTimeSec,
     int? takeoffFlightTimeSec,
     int? landingConfirmTimeSec,
@@ -39,6 +51,12 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
 
+    if (enableAutoTakeoff != null) await prefs.setBool('enableAutoTakeoff', enableAutoTakeoff);
+    if (enableMidAirStart != null) await prefs.setBool('enableMidAirStart', enableMidAirStart);
+    if (enableAutoLanding != null) await prefs.setBool('enableAutoLanding', enableAutoLanding);
+    if (enableCfvWindFail != null) await prefs.setBool('enableCfvWindFail', enableCfvWindFail);
+    if (enableCfvIntersection != null) await prefs.setBool('enableCfvIntersection', enableCfvIntersection);
+    if (enableCfvHighway != null) await prefs.setBool('enableCfvHighway', enableCfvHighway);
     if (takeoffWaitTimeSec != null)
       await prefs.setInt('takeoffWaitTimeSec', takeoffWaitTimeSec);
     if (takeoffFlightTimeSec != null)
@@ -59,6 +77,12 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       await prefs.setInt('gpsCleanupExtraSec', gpsCleanupExtraSec);
 
     state = state.copyWith(
+      enableAutoTakeoff: enableAutoTakeoff,
+      enableMidAirStart: enableMidAirStart,
+      enableAutoLanding: enableAutoLanding,
+      enableCfvWindFail: enableCfvWindFail,
+      enableCfvIntersection: enableCfvIntersection,
+      enableCfvHighway: enableCfvHighway,
       takeoffWaitTimeSec: takeoffWaitTimeSec,
       takeoffFlightTimeSec: takeoffFlightTimeSec,
       landingConfirmTimeSec: landingConfirmTimeSec,

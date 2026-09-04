@@ -1,28 +1,36 @@
 // Версия: 0.1.0 | Цель: Конфигурация детектора полета и трека
 
 class TrackConfig {
-  /// Время топтания на месте перед разбегом (в секундах)
+  /// Автоматика
+  final bool enableAutoTakeoff;
+  final bool enableMidAirStart;
+  final bool enableAutoLanding;
+  final bool enableCfvWindFail;
+  final bool enableCfvIntersection;
+  final bool enableCfvHighway;
+
+  /// Время в секундах, в течение которого пилот должен "топтаться" перед разбегом (ожидание)
   final int takeoffWaitTimeSec;
 
-  /// Интервал поддержания полетной скорости для подтверждения старта (в секундах)
+  /// Время в секундах стабильного движения, необходимое для подтверждения взлета
   final int takeoffFlightTimeSec;
 
-  /// Время нулевой скорости для подтверждения посадки (в секундах)
+  /// Время в секундах для подтверждения факта посадки (полная остановка)
   final int landingConfirmTimeSec;
 
-  /// Порог полетной скорости в м/с (по умолчанию ~15 км/ч)
+  /// Минимальная полетная скорость в м/с (для старта и фильтров)
   final double minFlightSpeedMs;
 
-  /// Порог скорости ходьбы в м/с (по умолчанию ~5 км/ч)
+  /// Максимальная скорость движения пешком в м/с (используется для поиска точки начала разбега)
   final double maxWalkSpeedMs;
 
-  /// Минимальная SOG для активации ветра и Mid-Air старта (м/с)
+  /// CFV: Минимальная скорость SOG в полете (м/с) - ниже которой считается, что аппарат на земле, если он не параплан.
   final double cfvMinFlightSog;
 
-  /// Минимальная SOG для фильтра поворота на перекрестке (м/с)
+  /// CFV: Минимальная скорость, при которой работает проверка поворотов (м/с)
   final double cfvTurnMinSog;
 
-  /// Порог SOG для детекта трассы/автомобиля (м/с)
+  /// CFV: Максимальная полетная скорость (м/с) (отсев езды по трассе)
   final double cfvHighwaySog;
 
   /// Таймаут падения ветра перед дисквалификацией полета (сек)
@@ -38,6 +46,12 @@ class TrackConfig {
   final int gpsCleanupExtraSec;
 
   const TrackConfig({
+    this.enableAutoTakeoff = true,
+    this.enableMidAirStart = true,
+    this.enableAutoLanding = true,
+    this.enableCfvWindFail = true,
+    this.enableCfvIntersection = true,
+    this.enableCfvHighway = true,
     this.takeoffWaitTimeSec = 5,
     this.takeoffFlightTimeSec = 15,
     this.landingConfirmTimeSec = 10,
@@ -53,6 +67,12 @@ class TrackConfig {
   });
 
   TrackConfig copyWith({
+    bool? enableAutoTakeoff,
+    bool? enableMidAirStart,
+    bool? enableAutoLanding,
+    bool? enableCfvWindFail,
+    bool? enableCfvIntersection,
+    bool? enableCfvHighway,
     int? takeoffWaitTimeSec,
     int? takeoffFlightTimeSec,
     int? landingConfirmTimeSec,
@@ -67,6 +87,12 @@ class TrackConfig {
     int? gpsCleanupExtraSec,
   }) {
     return TrackConfig(
+      enableAutoTakeoff: enableAutoTakeoff ?? this.enableAutoTakeoff,
+      enableMidAirStart: enableMidAirStart ?? this.enableMidAirStart,
+      enableAutoLanding: enableAutoLanding ?? this.enableAutoLanding,
+      enableCfvWindFail: enableCfvWindFail ?? this.enableCfvWindFail,
+      enableCfvIntersection: enableCfvIntersection ?? this.enableCfvIntersection,
+      enableCfvHighway: enableCfvHighway ?? this.enableCfvHighway,
       takeoffWaitTimeSec: takeoffWaitTimeSec ?? this.takeoffWaitTimeSec,
       takeoffFlightTimeSec: takeoffFlightTimeSec ?? this.takeoffFlightTimeSec,
       landingConfirmTimeSec:
