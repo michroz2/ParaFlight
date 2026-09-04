@@ -214,6 +214,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final dataSource = ref.watch(dataSourceProvider);
 
     final playbackState = ref.watch(playbackProvider);
+    final isPreviewVisible = _userPreviewToggle ?? !playbackState.hasStarted;
     final playbackNotifier = ref.read(playbackProvider.notifier);
 
     final wind = ref.watch(windProvider);
