@@ -10,8 +10,8 @@ import 'screen_settings_screen.dart';
 import 'map_settings_screen.dart';
 
 import 'track_settings_screen.dart'; // Новое: импорт экрана трека
-
 import 'wind_settings_screen.dart'; // Новое: импорт экрана ветра
+import 'dashboard_settings_screen.dart'; // Новое: импорт экрана дашборда
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -72,6 +72,19 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const MapSettingsScreen()),
+              );
+            }, // конец onTap
+          ), // конец ListTile
+          const Divider(),
+          // Новое: Элемент перехода к настройкам панели инструментов
+          ListTile(
+            leading: const Icon(Icons.dashboard),
+            title: const Text('Панель инструментов'),
+            subtitle: const Text('Настройка вариометра (Vz) и приборов'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const DashboardSettingsScreen()),
               );
             }, // конец onTap
           ), // конец ListTile

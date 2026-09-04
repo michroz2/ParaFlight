@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:math';
 
 import '../../../core/location/location_state.dart';
+import '../../../core/location/vertical_speed_provider.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
 import '../../../core/version_provider.dart';
