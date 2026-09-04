@@ -19,6 +19,8 @@ import '../../../core/telemetry_logger.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
+import '../../settings/application/track_config_provider.dart';
+import '../../settings/application/wind_config_provider.dart';
 import 'widgets/instrument_block.dart';
 import 'widgets/wind_circle_painter.dart';
 import 'widgets/save_track_dialog.dart';
@@ -694,7 +696,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
               ),
             ),
-            if (wind != null &&
+            if (windConfig.enableWindOverlay && 
+                wind != null &&
                 ref.watch(flightDetectorProvider).state == FlightState.inFlight)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
@@ -716,6 +719,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (currentLocation != null)
+                          Text(
+                            'SOG: ${currentLocation.speed.toStringAsFixed(1)} м/с',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         Row(
                           children: [
                             const Icon(Icons.air, size: 16, color: Colors.blue),
@@ -752,6 +760,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.red,
+                          ),
+                        ),
+                        Text(
+                          'Round: ${wind.roundness.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange,
                           ),
                         ),
                       ],

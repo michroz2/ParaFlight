@@ -53,9 +53,10 @@ class CircleKasaFit {
     }
 
     // Расчет Индекса Круглости для отсева прямой на акселераторе
+    double roundness = 0.0;
     final t = mxx + myy;
     if (t > 0) {
-      final roundness = (4 * d) / (t * t);
+      roundness = (4 * d) / (t * t);
       if (roundness < minRoundness) {
         return null; // Траектория недостаточно "круглая"
       }
@@ -103,6 +104,7 @@ class CircleKasaFit {
       windDirection: windOriginDeg,
       airspeed: r,
       rmse: rmse,
+      roundness: roundness,
       timestamp: points.last.timestamp,
     );
   }

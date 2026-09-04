@@ -27,6 +27,9 @@ class WindConfig {
   /// Минимальная круглость для отсева прямой линии на акселераторе
   final double minRoundness;
 
+  /// Автоматический показ окна ветра
+  final bool enableWindOverlay;
+
   const WindConfig({
     this.windowSizeSec = 120.0,
     this.minTurnAngleDeg = 30.0,
@@ -36,6 +39,7 @@ class WindConfig {
     this.gpxSmoothingWindow = 2,
     this.minCogChangeDeg = 1.0,
     this.minRoundness = 0.1,
+    this.enableWindOverlay = false,
   });
 
   WindConfig copyWith({
@@ -47,6 +51,7 @@ class WindConfig {
     int? gpxSmoothingWindow,
     double? minCogChangeDeg,
     double? minRoundness,
+    bool? enableWindOverlay,
   }) {
     return WindConfig(
       windowSizeSec: windowSizeSec ?? this.windowSizeSec,
@@ -57,6 +62,7 @@ class WindConfig {
       gpxSmoothingWindow: gpxSmoothingWindow ?? this.gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg ?? this.minCogChangeDeg,
       minRoundness: minRoundness ?? this.minRoundness,
+      enableWindOverlay: enableWindOverlay ?? this.enableWindOverlay,
     );
   }
 }

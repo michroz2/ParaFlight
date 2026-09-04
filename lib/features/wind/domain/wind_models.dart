@@ -27,6 +27,9 @@ class WindCalculationResult {
   /// Среднеквадратичная ошибка фиттинга (м/с)
   final double rmse;
   
+  /// Безразмерный параметр округлости (0..1)
+  final double roundness;
+  
   final DateTime timestamp;
 
   const WindCalculationResult({
@@ -34,6 +37,7 @@ class WindCalculationResult {
     required this.windDirection,
     required this.airspeed,
     required this.rmse,
+    required this.roundness,
     required this.timestamp,
   });
 }

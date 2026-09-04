@@ -19,6 +19,13 @@ class WindSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          const Text('Отображение', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+          SwitchListTile(
+            title: const Text('Автоматически показывать виджет ветра'),
+            value: config.enableWindOverlay,
+            onChanged: (value) => notifier.updateConfig(enableWindOverlay: value),
+          ),
+          const Divider(),
           const Text('Анализ трека (Конвейер)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
           const SizedBox(height: 8),
           

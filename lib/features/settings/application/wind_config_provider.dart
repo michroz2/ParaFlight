@@ -21,6 +21,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: prefs.getDouble('sampleIntervalSec') ?? 0.5,
       gpxSmoothingWindow: prefs.getInt('gpxSmoothingWindow') ?? 2,
       minCogChangeDeg: prefs.getDouble('minCogChangeDeg') ?? 1.0,
+      enableWindOverlay: prefs.getBool('enableWindOverlay') ?? false,
     );
   }
 
@@ -32,6 +33,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     double? sampleIntervalSec,
     int? gpxSmoothingWindow,
     double? minCogChangeDeg,
+    bool? enableWindOverlay,
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
     
@@ -42,6 +44,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     if (sampleIntervalSec != null) await prefs.setDouble('sampleIntervalSec', sampleIntervalSec);
     if (gpxSmoothingWindow != null) await prefs.setInt('gpxSmoothingWindow', gpxSmoothingWindow);
     if (minCogChangeDeg != null) await prefs.setDouble('minCogChangeDeg', minCogChangeDeg);
+    if (enableWindOverlay != null) await prefs.setBool('enableWindOverlay', enableWindOverlay);
 
     state = state.copyWith(
       windowSizeSec: windowSizeSec,
@@ -51,6 +54,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: sampleIntervalSec,
       gpxSmoothingWindow: gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg,
+      enableWindOverlay: enableWindOverlay,
     );
   }
 } // конец класса WindConfigNotifier
