@@ -19,7 +19,6 @@ import '../../../core/telemetry_logger.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
-import '../../settings/application/track_config_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
 import 'widgets/instrument_block.dart';
 import 'widgets/wind_circle_painter.dart';
@@ -220,6 +219,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final playbackNotifier = ref.read(playbackProvider.notifier);
 
     final wind = ref.watch(windProvider);
+    final windConfig = ref.watch(windConfigProvider);
 
     // Радарная математика (расчет метров на пиксель)
     final standardRadii = <double>[
