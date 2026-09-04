@@ -464,6 +464,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
                 Builder(
                   builder: (context) {
+                    final config = ref.watch(trackConfigProvider);
+                    if (!config.enableDebugMarkers) return const SizedBox.shrink();
                     final logs = ref.watch(telemetryProvider);
                     if (logs.isEmpty) return const SizedBox.shrink();
                     final markers = logs.map((event) {
@@ -954,13 +956,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           },
                         ),
                         const Spacer(),
-                        IconButton(
-                          iconSize: 32,
-                          icon: const Icon(
-                            Icons.bug_report,
-                            color: Colors.black87,
-                          ),
-                          onPressed: () => _showTelemetrySheet(context),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final config = ref.watch(trackConfigProvider);
+                            if (!config.enableDebugMarkers) return const SizedBox.shrink();
+                            return IconButton(
+                              iconSize: 32,
+                              icon: const Icon(
+                                Icons.bug_report,
+                                color: Colors.black87,
+                              ),
+                              onPressed: () => _showTelemetrySheet(context),
+                            );
+                          },
                         ),
                         IconButton(
                           iconSize: 32,

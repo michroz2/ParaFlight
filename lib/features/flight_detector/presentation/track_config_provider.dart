@@ -17,9 +17,10 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       enableAutoTakeoff: prefs.getBool('enableAutoTakeoff') ?? true,
       enableMidAirStart: prefs.getBool('enableMidAirStart') ?? true,
       enableAutoLanding: prefs.getBool('enableAutoLanding') ?? true,
-      enableCfvWindFail: prefs.getBool('enableCfvWindFail') ?? true,
-      enableCfvIntersection: prefs.getBool('enableCfvIntersection') ?? true,
-      enableCfvHighway: prefs.getBool('enableCfvHighway') ?? true,
+      enableCfvWindFail: prefs.getBool('enableCfvWindFail') ?? false,
+      enableCfvIntersection: prefs.getBool('enableCfvIntersection') ?? false,
+      enableCfvHighway: prefs.getBool('enableCfvHighway') ?? false,
+      enableDebugMarkers: prefs.getBool('enableDebugMarkers') ?? false,
       takeoffWaitTimeSec: prefs.getInt('takeoffWaitTimeSec') ?? 5,
       takeoffFlightTimeSec: prefs.getInt('takeoffFlightTimeSec') ?? 15,
       landingConfirmTimeSec: prefs.getInt('landingConfirmTimeSec') ?? 10,
@@ -28,7 +29,7 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       cfvWindFailTimeoutSec: prefs.getInt('cfvWindFailTimeoutSec') ?? 180,
       cfvTurnWindowSec: prefs.getInt('cfvTurnWindowSec') ?? 5,
       gpsRecordIntervalSec: prefs.getDouble('gpsRecordIntervalSec') ?? 0.5,
-      gpsCleanupExtraSec: prefs.getInt('gpsCleanupExtraSec') ?? 5,
+      gpsCleanupExtraSec: prefs.getInt('gpsCleanupExtraSec') ?? 30,
     );
   }
 
@@ -39,6 +40,7 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     bool? enableCfvWindFail,
     bool? enableCfvIntersection,
     bool? enableCfvHighway,
+    bool? enableDebugMarkers,
     int? takeoffWaitTimeSec,
     int? takeoffFlightTimeSec,
     int? landingConfirmTimeSec,
@@ -57,6 +59,7 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     if (enableCfvWindFail != null) await prefs.setBool('enableCfvWindFail', enableCfvWindFail);
     if (enableCfvIntersection != null) await prefs.setBool('enableCfvIntersection', enableCfvIntersection);
     if (enableCfvHighway != null) await prefs.setBool('enableCfvHighway', enableCfvHighway);
+    if (enableDebugMarkers != null) await prefs.setBool('enableDebugMarkers', enableDebugMarkers);
     if (takeoffWaitTimeSec != null)
       await prefs.setInt('takeoffWaitTimeSec', takeoffWaitTimeSec);
     if (takeoffFlightTimeSec != null)
@@ -83,6 +86,7 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       enableCfvWindFail: enableCfvWindFail,
       enableCfvIntersection: enableCfvIntersection,
       enableCfvHighway: enableCfvHighway,
+      enableDebugMarkers: enableDebugMarkers,
       takeoffWaitTimeSec: takeoffWaitTimeSec,
       takeoffFlightTimeSec: takeoffFlightTimeSec,
       landingConfirmTimeSec: landingConfirmTimeSec,

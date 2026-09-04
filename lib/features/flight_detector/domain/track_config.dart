@@ -8,6 +8,7 @@ class TrackConfig {
   final bool enableCfvWindFail;
   final bool enableCfvIntersection;
   final bool enableCfvHighway;
+  final bool enableDebugMarkers;
 
   /// Время в секундах, в течение которого пилот должен "топтаться" перед разбегом (ожидание)
   final int takeoffWaitTimeSec;
@@ -42,16 +43,17 @@ class TrackConfig {
   /// Интервал записи GPS (сек)
   final double gpsRecordIntervalSec;
 
-  /// Оставить секунд до/после полета при очистке (сек)
+  /// Настройка обрезки лишнего трека после посадки
   final int gpsCleanupExtraSec;
 
   const TrackConfig({
     this.enableAutoTakeoff = true,
     this.enableMidAirStart = true,
     this.enableAutoLanding = true,
-    this.enableCfvWindFail = true,
-    this.enableCfvIntersection = true,
-    this.enableCfvHighway = true,
+    this.enableCfvWindFail = false,
+    this.enableCfvIntersection = false,
+    this.enableCfvHighway = false,
+    this.enableDebugMarkers = false,
     this.takeoffWaitTimeSec = 5,
     this.takeoffFlightTimeSec = 15,
     this.landingConfirmTimeSec = 10,
@@ -63,7 +65,7 @@ class TrackConfig {
     this.cfvWindFailTimeoutSec = 180,
     this.cfvTurnWindowSec = 5,
     this.gpsRecordIntervalSec = 0.5,
-    this.gpsCleanupExtraSec = 5,
+    this.gpsCleanupExtraSec = 30,
   });
 
   TrackConfig copyWith({
@@ -73,6 +75,7 @@ class TrackConfig {
     bool? enableCfvWindFail,
     bool? enableCfvIntersection,
     bool? enableCfvHighway,
+    bool? enableDebugMarkers,
     int? takeoffWaitTimeSec,
     int? takeoffFlightTimeSec,
     int? landingConfirmTimeSec,
@@ -93,6 +96,7 @@ class TrackConfig {
       enableCfvWindFail: enableCfvWindFail ?? this.enableCfvWindFail,
       enableCfvIntersection: enableCfvIntersection ?? this.enableCfvIntersection,
       enableCfvHighway: enableCfvHighway ?? this.enableCfvHighway,
+      enableDebugMarkers: enableDebugMarkers ?? this.enableDebugMarkers,
       takeoffWaitTimeSec: takeoffWaitTimeSec ?? this.takeoffWaitTimeSec,
       takeoffFlightTimeSec: takeoffFlightTimeSec ?? this.takeoffFlightTimeSec,
       landingConfirmTimeSec:

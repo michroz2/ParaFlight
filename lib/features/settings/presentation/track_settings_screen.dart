@@ -49,6 +49,11 @@ class TrackSettingsScreen extends ConsumerWidget {
             value: config.enableCfvHighway,
             onChanged: (val) => notifier.updateConfig(enableCfvHighway: val),
           ),
+          SwitchListTile(
+            title: const Text('Debug markers'),
+            value: config.enableDebugMarkers,
+            onChanged: (val) => notifier.updateConfig(enableDebugMarkers: val),
+          ),
           
           const Divider(height: 32),
           const Text(
