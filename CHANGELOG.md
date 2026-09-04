@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-09-04
+### Added
+- Расчет и отображение времени и дистанции полёта на Dashboard (от старта до текущей позиции, суммарно для всех полётов или с начала трека до взлёта).
+
 ## [1.8.0] - 2026-09-03
 ### Added
 - Added current version to the title bar on the Dashboard screen.

@@ -587,20 +587,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             title: 'SOG',
                             unit: 'km/h',
                             value: currentLocation != null
-                                ? (currentLocation.speed * 3.6).toStringAsFixed(
-                                    1,
-                                  )
+                                ? (currentLocation.speed * 3.6).toStringAsFixed(1)
                                 : '--.-',
                           ),
-                          const InstrumentBlock(
+                          InstrumentBlock(
                             title: 'FLT',
                             unit: 'time',
-                            value: '00:00',
+                            value: ref.watch(flightDetectorProvider).currentDuration.inHours > 0 
+                                ? '${ref.watch(flightDetectorProvider).currentDuration.inHours}:${(ref.watch(flightDetectorProvider).currentDuration.inMinutes % 60).toString().padLeft(2, '0')}'
+                                : '${(ref.watch(flightDetectorProvider).currentDuration.inMinutes).toString().padLeft(2, '0')}:${(ref.watch(flightDetectorProvider).currentDuration.inSeconds % 60).toString().padLeft(2, '0')}',
                           ),
-                          const InstrumentBlock(
+                          InstrumentBlock(
                             title: 'DIST',
                             unit: 'km',
-                            value: '0.0',
+                            value: (ref.watch(flightDetectorProvider).currentDistance / 1000.0).toStringAsFixed(1),
                           ),
                         ],
                       ),

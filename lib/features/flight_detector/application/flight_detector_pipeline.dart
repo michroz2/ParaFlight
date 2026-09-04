@@ -1,6 +1,7 @@
 // Версия: 0.1.0 | Цель: Логика детектора полета (State Machine и Паттерны)
 
 import '../../../core/location/location_entity.dart';
+import 'package:latlong2/latlong.dart' as latlong2;
 import '../domain/flight_state.dart';
 import '../domain/track_config.dart';
 import '../../wind/domain/wind_models.dart';
@@ -13,6 +14,10 @@ class FlightDetectorPipeline {
   FlightState _currentState = FlightState.groundMovement;
   
   final List<FlightRecord> _flights = [];
+  
+  double _totalTrackDistance = 0.0;
+  Duration _totalTrackDuration = Duration.zero;
+  LocationEntity? _lastLocation;
 
   FlightDetectorPipeline({
     this.config = const TrackConfig(),
@@ -24,18 +29,46 @@ class FlightDetectorPipeline {
   LocationEntity? get startMark => _flights.isNotEmpty ? _flights.last.start : null;
   LocationEntity? get finishMark => _flights.isNotEmpty ? _flights.last.finish : null;
   List<LocationEntity> get buffer => _buffer;
+  
+  double get currentDistance {
+    if (_flights.isEmpty) return _totalTrackDistance;
+    return _flights.fold(0.0, (sum, f) => sum + f.distance);
+  }
+  
+  Duration get currentDuration {
+    if (_flights.isEmpty) return _totalTrackDuration;
+    return _flights.fold(Duration.zero, (sum, f) => sum + f.duration);
+  }
 
   void reset() {
     _buffer.clear();
     _flights.clear();
     _currentState = FlightState.groundMovement;
+    _totalTrackDistance = 0.0;
+    _totalTrackDuration = Duration.zero;
+    _lastLocation = null;
   } // конец метода reset
 
   DateTime? _lastValidWindTime;
   DateTime? _highwayStartTime;
 
   void processLocation(LocationEntity point, {WindCalculationResult? currentWind}) {
+    double deltaDist = 0.0;
+    Duration deltaT = Duration.zero;
+    if (_lastLocation != null) {
+      final distance = const latlong2.Distance();
+      deltaDist = distance.as(latlong2.LengthUnit.Meter, latlong2.LatLng(_lastLocation!.latitude, _lastLocation!.longitude), latlong2.LatLng(point.latitude, point.longitude));
+      deltaT = point.timestamp.difference(_lastLocation!.timestamp);
+    }
+    _totalTrackDistance += deltaDist;
+    _totalTrackDuration += deltaT;
+    
     _buffer.add(point);
+    
+    if (_currentState == FlightState.inFlight && _flights.isNotEmpty) {
+      _flights.last.distance += deltaDist;
+      _flights.last.duration += deltaT;
+    }
     
     // Поддерживаем буфер размером 60 секунд
     final cutoffTime = point.timestamp.subtract(const Duration(seconds: 60));
@@ -44,6 +77,9 @@ class FlightDetectorPipeline {
     if (_currentState == FlightState.groundMovement || _currentState == FlightState.landing) {
       if (_currentState == FlightState.landing) {
          _currentState = FlightState.groundMovement;
+    _totalTrackDistance = 0.0;
+    _totalTrackDuration = Duration.zero;
+    _lastLocation = null;
       }
       if (config.enableAutoTakeoff) {
         _checkTakeoffPattern();
@@ -57,6 +93,7 @@ class FlightDetectorPipeline {
         _checkLandingPattern();
       }
     } // конец if-else
+    _lastLocation = point;
   } // конец метода processLocation
 
   void _checkMidAirStartPattern(LocationEntity point) {
@@ -75,7 +112,23 @@ class FlightDetectorPipeline {
       
       if (isHighSpeed) {
         final start = recentPoints.first;
-        _flights.add(FlightRecord(start: start, isMidAirStart: true));
+        
+        double retroactiveDist = 0.0;
+        Duration retroactiveTime = Duration.zero;
+        bool foundStart = false;
+        LocationEntity? prev;
+        for (var p in _buffer) {
+          if (p == start) foundStart = true;
+          if (foundStart) {
+            if (prev != null) {
+              retroactiveDist += const latlong2.Distance().as(latlong2.LengthUnit.Meter, latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(p.latitude, p.longitude));
+              retroactiveTime += p.timestamp.difference(prev.timestamp);
+            }
+            prev = p;
+          }
+        }
+        
+        _flights.add(FlightRecord(start: start, isMidAirStart: true, distance: retroactiveDist, duration: retroactiveTime));
         _currentState = FlightState.inFlight;
         _lastValidWindTime = now;
         _highwayStartTime = null;
@@ -146,6 +199,9 @@ class FlightDetectorPipeline {
         _flights.removeLast();
       }
       _currentState = FlightState.groundMovement;
+    _totalTrackDistance = 0.0;
+    _totalTrackDuration = Duration.zero;
+    _lastLocation = null;
       _lastValidWindTime = null;
       _highwayStartTime = null;
     }
@@ -200,7 +256,22 @@ class FlightDetectorPipeline {
     if (_buffer.last.altitude <= avgWaitAltitude) return;
 
     // Паттерн совпал!
-    _flights.add(FlightRecord(start: p1));
+    double retroactiveDist = 0.0;
+    Duration retroactiveTime = Duration.zero;
+    bool foundP1 = false;
+    LocationEntity? prev;
+    for (var p in _buffer) {
+      if (p == p1) foundP1 = true;
+      if (foundP1) {
+        if (prev != null) {
+          retroactiveDist += const latlong2.Distance().as(latlong2.LengthUnit.Meter, latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(p.latitude, p.longitude));
+          retroactiveTime += p.timestamp.difference(prev.timestamp);
+        }
+        prev = p;
+      }
+    }
+    
+    _flights.add(FlightRecord(start: p1, distance: retroactiveDist, duration: retroactiveTime));
     _currentState = FlightState.inFlight;
     onLogEvent?.call(p1.timestamp, p1.latitude, p1.longitude, "Паттерн: Взлет");
   } // конец метода _checkTakeoffPattern
@@ -257,6 +328,25 @@ class FlightDetectorPipeline {
     // Паттерн совпал!
     if (_flights.isNotEmpty) {
       _flights.last.finish = p2;
+      
+      double overDist = 0.0;
+      Duration overTime = Duration.zero;
+      bool foundP2 = false;
+      LocationEntity? prev;
+      for (var p in _buffer) {
+        if (p == p2) foundP2 = true;
+        if (foundP2) {
+          if (prev != null) {
+            overDist += const latlong2.Distance().as(latlong2.LengthUnit.Meter, latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(p.latitude, p.longitude));
+            overTime += p.timestamp.difference(prev.timestamp);
+          }
+          prev = p;
+        }
+      }
+      _flights.last.distance -= overDist;
+      _flights.last.duration -= overTime;
+      if (_flights.last.distance < 0) _flights.last.distance = 0;
+      if (_flights.last.duration.isNegative) _flights.last.duration = Duration.zero;
     }
     _currentState = FlightState.landing;
     onLogEvent?.call(p2.timestamp, p2.latitude, p2.longitude, "Паттерн: Посадка");

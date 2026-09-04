@@ -13,6 +13,15 @@ class FlightRecord {
   final LocationEntity start;
   LocationEntity? finish;
   final bool isMidAirStart;
+  
+  double distance;
+  Duration duration;
 
-  FlightRecord({required this.start, this.finish, this.isMidAirStart = false});
+  FlightRecord({
+    required this.start, 
+    this.finish, 
+    this.isMidAirStart = false,
+    this.distance = 0.0,
+    this.duration = Duration.zero,
+  });
 } // конец класса FlightRecord

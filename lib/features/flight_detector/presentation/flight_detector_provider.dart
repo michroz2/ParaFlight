@@ -15,10 +15,14 @@ import '../../../core/telemetry_logger.dart';
 class FlightDetectorState {
   final FlightState state;
   final List<FlightRecord> flights;
+  final double currentDistance;
+  final Duration currentDuration;
 
   const FlightDetectorState({
     this.state = FlightState.groundMovement,
     this.flights = const [],
+    this.currentDistance = 0.0,
+    this.currentDuration = Duration.zero,
   });
   
   LocationEntity? get startMark => flights.isNotEmpty ? flights.last.start : null;
@@ -67,12 +71,16 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
       state = FlightDetectorState(
         state: _pipeline.currentState,
         flights: List.of(_pipeline.flights),
+        currentDistance: _pipeline.currentDistance,
+        currentDuration: _pipeline.currentDuration,
       );
     } else {
       _pipeline.processLocation(location, currentWind: currentWind);
       state = FlightDetectorState(
         state: _pipeline.currentState,
         flights: List.of(_pipeline.flights),
+        currentDistance: _pipeline.currentDistance,
+        currentDuration: _pipeline.currentDuration,
       );
     } // конец if-else
   } // конец метода updateLocation
