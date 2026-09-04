@@ -129,11 +129,37 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     throw Exception('Разрешения на геолокацию отклонены навсегда.');
   } // конец if
 
-  yield* Geolocator.getPositionStream(
-    locationSettings: const LocationSettings(
+  LocationSettings locationSettings;
+  
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    locationSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 0,
-    ),
+      forceLocationManager: false,
+      intervalDuration: const Duration(seconds: 1),
+      foregroundNotificationConfig: const ForegroundNotificationConfig(
+        notificationText: "Запись трека и геоданных",
+        notificationTitle: "ParaFlight Трекинг",
+        enableWakeLock: true,
+      ),
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+    locationSettings = AppleSettings(
+      accuracy: LocationAccuracy.high,
+      activityType: ActivityType.fitness,
+      distanceFilter: 0,
+      pauseLocationUpdatesAutomatically: false,
+      showBackgroundLocationIndicator: true,
+    );
+  } else {
+    locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    );
+  }
+
+  yield* Geolocator.getPositionStream(
+    locationSettings: locationSettings,
   ).map((Position position) {
     return LocationEntity(
       latitude: position.latitude,
