@@ -40,6 +40,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   bool _isFreePanMode = false;
   bool _isTrackingPilot = true;
+  bool? _userPreviewToggle;
   Timer? _autoReturnTimer;
 
   // Переменная для настройки скорости возврата (в миллисекундах)
@@ -264,6 +265,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ? '${(bestRadiusMeters / 1000).toStringAsFixed(bestRadiusMeters % 1000 == 0 ? 0 : 1)} km'
         : '${bestRadiusMeters.toStringAsFixed(0)} m';
 
+    ref.listen(playbackProvider, (previous, next) {
+      if (previous?.hasStarted == true && next.hasStarted == false) {
+        setState(() {
+          _userPreviewToggle = null;
+        });
+      }
+    });
+
     ref.listen(locationProvider, (previous, nextAsync) {
       final next = nextAsync.valueOrNull;
       if (next != null) {
@@ -372,7 +381,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.paraflight',
                 ),
-                if (!playbackState.hasStarted && gpxState != null && gpxState.points != null && dataSource == DataSource.simulator)
+                if (isPreviewVisible && gpxState != null && gpxState.points != null && dataSource == DataSource.simulator)
                   PolylineLayer(
                     polylines: [
                       Polyline(
@@ -766,6 +775,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                   child: Row(
                     children: [
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _userPreviewToggle = !isPreviewVisible;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white12,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.gesture,
+                            color: isPreviewVisible ? Colors.purpleAccent : Colors.white54,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       InkWell(
                         onTap: () => playbackNotifier.togglePlay(),
                         child: Icon(
