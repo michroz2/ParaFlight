@@ -15,7 +15,7 @@ class VerticalSpeedNotifier extends StateNotifier<double> {
     if (_buffer.isNotEmpty) {
       final dt = location.timestamp.difference(_buffer.last.timestamp).inMilliseconds;
       // Если время идет назад или есть сильный пропуск (перемотка), сбрасываем буфер
-      if (dt < 0 || dt > 2000) {
+      if (dt < 0 || dt > 10000) {
         _buffer.clear();
         state = 0.0;
       }

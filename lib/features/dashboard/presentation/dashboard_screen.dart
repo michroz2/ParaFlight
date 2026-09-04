@@ -619,10 +619,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                 ? currentLocation.altitude.toStringAsFixed(0)
                                 : '---',
                           ),
-                          const InstrumentBlock(
-                            title: 'Vz',
-                            unit: 'm/s',
-                            value: '+0.0',
+                          Builder(
+                            builder: (context) {
+                              final vz = ref.watch(verticalSpeedProvider);
+                              final sign = vz > 0 ? '+' : '';
+                              return InstrumentBlock(
+                                title: 'Vz',
+                                unit: 'm/s',
+                                value: currentLocation != null ? '$sign${vz.toStringAsFixed(1)}' : '---',
+                              );
+                            }
                           ),
                           const InstrumentBlock(
                             title: 'FUEL',
