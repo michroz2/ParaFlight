@@ -63,13 +63,13 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
     return SafeArea(
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
+          maxHeight: MediaQuery.of(context).size.height,
         ),
         padding: EdgeInsets.only(
           left: 24,
           right: 24,
-          top: 12,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+          top: 10,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 10,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -78,47 +78,49 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
               // Заголовок
               const Text(
                 'Топливо (л)',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               
               // Инфо-блок
               if (lastFlightDurationHours <= 0)
                 const Text(
                   'Крайний полёт: Нет данных',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
                   textAlign: TextAlign.center,
                 )
               else
                 Column(
                   children: [
                     Text(
-                      'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                    Text(
-                      'Остаток: ${initialRemainder.toStringAsFixed(1)} л, Расход: ${fuelState.averageConsumption.toStringAsFixed(1)} л/ч',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}, Остаток: ${initialRemainder.toStringAsFixed(1)} л',
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               const SizedBox(height: 4),
+              if (lastFlightDurationHours <= 0)
               Text(
-                'Новый расход: ${dynamicConsumption.toStringAsFixed(1)} л/ч',
+                'Расход: ${fuelState.averageConsumption.toStringAsFixed(1)} л/ч',
+                style: const TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ) 
+              else 
+              Text(
+                'Расход: ${fuelState.averageConsumption.toStringAsFixed(1)} л/ч >> Новый расход: ${dynamicConsumption.toStringAsFixed(1)} л/ч',
                 style: const TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 2),
 
             // Блок Остатка
-            _buildRow('Остаток:', remainder, (val) {
+            _buildRow('Остаток (уточнить!):', remainder, (val) {
               setState(() {
                 remainder = min(max(0.0, val), tankCapacity);
               });
             }),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             
             // Блок Добавлено
             _buildRow('Добавлено:', added, (val) {
@@ -126,7 +128,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
                 added = max(0.0, val);
               });
             }),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             
             // Кнопка Полный бак
             SizedBox(
@@ -143,12 +145,12 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Text(
-                  'ПОЛНЫЙ БАК (${tankCapacity.toStringAsFixed(1)} л)',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  'ПОЛНЫЙ БАК! (${tankCapacity.toStringAsFixed(1)} л)',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             
             // Итог
             Row(
@@ -176,25 +178,25 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
               child: const Padding(
                 padding: EdgeInsets.only(top: 4.0),
                 child: Text(
-                  'Внимание: превышена ёмкость бака!',
-                  style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                  'Превышена ёмкость бака!',
+                  style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
 
             // Подвал (кнопки)
             Row(
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 64,
+                    height: 50,
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text('ОТМЕНА', style: TextStyle(fontSize: 20)),
+                      child: const Text('ОТМЕНА', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ),
@@ -202,7 +204,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
                 Expanded(
                   flex: 2,
                   child: SizedBox(
-                    height: 64,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: () {
                         ref.read(fuelProvider.notifier).updateFuel(remainder, added, isSimulator);
@@ -211,7 +213,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ),
@@ -228,7 +230,6 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -244,7 +245,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
             ),
             Text(
               value.toStringAsFixed(1),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
             ),
             RepeatingIconButton(
               icon: Icons.add_circle,

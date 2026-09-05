@@ -18,7 +18,7 @@ class FuelSettingsScreen extends ConsumerWidget {
         children: [
           SwitchListTile(
             title: const Text('Учитывать топливо'),
-            subtitle: const Text('Отображать расчет на главном экране'),
+            subtitle: const Text('Отображать запас и корректировать расход'),
             value: fuelState.enableFuelTracking,
             onChanged: (val) {
               notifier.toggleTracking(val);
@@ -69,7 +69,7 @@ class FuelSettingsScreen extends ConsumerWidget {
           const Divider(),
           SwitchListTile(
             title: const Text('Корректировать расход автоматически'),
-            subtitle: const Text('Пересчитывать расход на основе введенного остатка'),
+            subtitle: const Text('Пересчитывать расход путём коррекции остатка'),
             value: fuelState.autoCorrectConsumption,
             onChanged: fuelState.enableFuelTracking
                 ? (val) => notifier.toggleAutoCorrect(val)
@@ -77,7 +77,7 @@ class FuelSettingsScreen extends ConsumerWidget {
           ),
           SwitchListTile(
             title: const Text('Корректировать при симуляции'),
-            subtitle: const Text('Пересчитывать расход во время использования симулятора'),
+            subtitle: const Text('Пересчитывать расход при использовании симулятора'),
             value: fuelState.correctInSimulator,
             onChanged: fuelState.enableFuelTracking
                 ? (val) => notifier.toggleCorrectInSimulator(val)
