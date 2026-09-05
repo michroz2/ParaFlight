@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.7] - 2026-09-06
+### Added
+- Added "Joker Remainder" (Рубежный остаток) fuel tracking feature. When fuel drops below the configured amount (0-5L, adjustable in settings), the dashboard FUEL widget flashes orange and a warning dialog alerts the pilot.
+
 ## [1.16.6] - 2026-09-05
 ### Fixed
 - Fixed Fuel Dialog dynamic consumption calculation logic: removed EMA smoothing for immediate manual input to ensure accurate recalculation, and retained flight time upon save.

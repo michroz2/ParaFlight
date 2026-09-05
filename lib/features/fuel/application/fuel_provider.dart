@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/preferences/preferences_provider.dart';
 import '../../../core/location/location_state.dart';
+import '../../../core/location/location_state.dart';
 import '../domain/fuel_state.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart';
 import '../../flight_detector/domain/flight_state.dart';
@@ -17,6 +18,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
   static const String _keyAvgConsumption = 'fuel_average_consumption';
   static const String _keyRemainder = 'fuel_calculated_remainder';
   static const String _keyTankCapacity = 'fuel_tank_capacity';
+  static const String _keyJokerRemainder = 'fuel_joker_remainder';
   static const String _keyLastFlightDuration = 'fuel_last_flight_duration_hours';
 
   FuelNotifier(this._prefs) : super(const FuelState()) {
@@ -30,6 +32,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
     final avg = _prefs.getDouble(_keyAvgConsumption) ?? 4.0;
     final remainder = _prefs.getDouble(_keyRemainder) ?? 0.0;
     final capacity = _prefs.getDouble(_keyTankCapacity) ?? 15.0;
+    final joker = _prefs.getDouble(_keyJokerRemainder) ?? 2.0;
     final lastDuration = _prefs.getDouble(_keyLastFlightDuration) ?? 0.0;
 
     state = FuelState(
@@ -39,6 +42,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
       averageConsumption: avg,
       remainder: remainder,
       tankCapacity: capacity,
+      jokerRemainder: joker,
       lastFlightDurationHours: lastDuration,
     );
   }
@@ -50,6 +54,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
     await _prefs.setDouble(_keyAvgConsumption, state.averageConsumption);
     await _prefs.setDouble(_keyRemainder, state.remainder);
     await _prefs.setDouble(_keyTankCapacity, state.tankCapacity);
+    await _prefs.setDouble(_keyJokerRemainder, state.jokerRemainder);
     await _prefs.setDouble(_keyLastFlightDuration, state.lastFlightDurationHours);
   }
 
@@ -77,6 +82,15 @@ class FuelNotifier extends StateNotifier<FuelState> {
     state = state.copyWith(tankCapacity: capacity);
     _saveToPrefs();
   }
+  
+  void setJokerRemainder(double joker) {
+    state = state.copyWith(jokerRemainder: joker);
+    _saveToPrefs();
+  }
+
+  void markJokerWarningShown() {
+    state = state.copyWith(hasShownJokerWarning: true);
+  }
 
   void updateFuel(double remainder, double added, bool isSimulator) {
     double newAvg = state.averageConsumption;
@@ -103,6 +117,8 @@ class FuelNotifier extends StateNotifier<FuelState> {
       averageConsumption: newAvg,
       remainder: newRemainder,
       lastFlightDurationHours: newLastFlightDuration,
+      // Сбрасываем флаг показа предупреждения, если топлива стало больше рубежного
+      hasShownJokerWarning: newRemainder > state.jokerRemainder ? false : state.hasShownJokerWarning,
     );
     
     _saveToPrefs();
@@ -128,7 +144,10 @@ class FuelNotifier extends StateNotifier<FuelState> {
     }
 
     final hours = flightDuration.inMilliseconds / 3600000.0;
-    state = state.copyWith(lastFlightDurationHours: hours);
+    state = state.copyWith(
+      lastFlightDurationHours: hours,
+      hasShownJokerWarning: false, // Сбрасываем флаг при завершении полета
+    );
     _saveToPrefs();
   }
   

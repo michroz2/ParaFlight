@@ -228,6 +228,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<FuelState>(fuelProvider, (prev, next) {
+      if (next.enableFuelTracking && 
+          next.remainder <= next.jokerRemainder && 
+          !next.hasShownJokerWarning) {
+        
+        // Показываем предупреждение и помечаем
+        Future.microtask(() {
+          ref.read(fuelProvider.notifier).markJokerWarningShown();
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => Dialog(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'ТОПЛИВО МИНИМУМ',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 64,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('ОТМЕНИТЬ', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+      }
+    });
+
     final mapSettings = ref.watch(mapSettingsProvider);
     if (_rotationMode == null) {
       _rotationMode = mapSettings.defaultRotationMode;
@@ -665,6 +716,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               unit: 'L',
                               value: ref.watch(fuelProvider).remainder.toStringAsFixed(1),
                               onTap: () => _showFuelDialog(context),
+                              isFlashing: ref.watch(fuelProvider).remainder <= ref.watch(fuelProvider).jokerRemainder,
                             ),
                         ],
                       ),
