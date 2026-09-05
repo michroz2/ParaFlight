@@ -128,14 +128,19 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
               ),
             ],
           ),
-          if (isOverflow)
-            const Padding(
+          Visibility(
+            visible: isOverflow,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: const Padding(
               padding: EdgeInsets.only(top: 8.0),
               child: Text(
                 'Внимание: превышена ёмкость бака!',
                 style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
+          ),
           const SizedBox(height: 32),
 
           // Подвал (кнопки)

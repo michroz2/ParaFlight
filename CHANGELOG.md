@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.4] - 2026-09-05
+### Fixed
+- Reserved layout space for the overflow warning in the Fuel Dialog to prevent dialog height changes.
+
 ## [1.16.3] - 2026-09-05
 ### Changed
 - Redesigned Fuel Dialog to a Glove-Friendly BottomSheet.
