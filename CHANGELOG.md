@@ -2,8 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0] - 2026-09-05
+### Added
+- Added Fuel Tracking system (Учёт топлива) with dynamic calculation in flight based on EMA.
+- Added Fuel settings toggle and configuration in Settings.
+- Added interactive Fuel dialog on the Dashboard to input remainder and added fuel.
+
 ## [1.15.2] - 2026-09-05
-### Fixed
 - Fixed map starting at (0, 0) and missing plane marker by using `getLastKnownPosition` before stream starts.
 - Added missing `GeolocatorLocationService` declaration to AndroidManifest to prevent ForegroundService crash on startup.
 

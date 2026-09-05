@@ -12,6 +12,7 @@ import 'map_settings_screen.dart';
 import 'track_settings_screen.dart'; // Новое: импорт экрана трека
 import 'wind_settings_screen.dart'; // Новое: импорт экрана ветра
 import 'dashboard_settings_screen.dart'; // Новое: импорт экрана дашборда
+import '../../fuel/presentation/fuel_settings_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -88,6 +89,19 @@ class SettingsScreen extends ConsumerWidget {
               );
             }, // конец onTap
           ), // конец ListTile
+          const Divider(),
+          // Расчет топлива
+          ListTile(
+            leading: const Icon(Icons.local_gas_station),
+            title: const Text('Расчёт топлива'),
+            subtitle: const Text('Вкл/выкл, расход, емкость'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const FuelSettingsScreen()),
+              );
+            },
+          ),
           const Divider(),
           // Элемент перехода к настройкам экрана
           ListTile(

@@ -21,6 +21,8 @@ import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
+import '../../fuel/application/fuel_provider.dart';
+import '../../fuel/presentation/fuel_dialog.dart';
 import 'widgets/instrument_block.dart';
 import 'widgets/wind_circle_painter.dart';
 import 'widgets/save_track_dialog.dart';
@@ -47,6 +49,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   // Переменная для настройки скорости возврата (в миллисекундах)
   final int _mapReturnAnimationMs = 1000;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      final flightState = ref.read(flightDetectorProvider).state;
+      final loc = ref.read(locationProvider).valueOrNull;
+      final config = ref.read(trackConfigProvider);
+      final fuelState = ref.read(fuelProvider);
+      
+      if (fuelState.enableFuelTracking && flightState == FlightState.groundMovement && (loc == null || loc.speed <= config.maxWalkSpeedMs)) {
+        _showFuelDialog(context);
+      }
+    });
+  }
+
+  void _showFuelDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const FuelDialog(),
+    );
+  }
 
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     final latTween = Tween<double>(
@@ -630,11 +656,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               );
                             }
                           ),
-                          const InstrumentBlock(
-                            title: 'FUEL',
-                            unit: 'L',
-                            value: '--.-',
-                          ),
+                          if (ref.watch(fuelProvider).enableFuelTracking)
+                            InstrumentBlock(
+                              title: 'FUEL',
+                              unit: 'L',
+                              value: ref.watch(fuelProvider).remainder.toStringAsFixed(1),
+                              onTap: () => _showFuelDialog(context),
+                            ),
                         ],
                       ),
                     ),
