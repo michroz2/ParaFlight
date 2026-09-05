@@ -57,39 +57,60 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
     // Динамический расчет расхода
     double dynamicConsumption = fuelState.averageConsumption;
     if (lastFlightDurationHours > 0 && remainder != initialRemainder) {
-      dynamicConsumption = (initialRemainder - remainder) / lastFlightDurationHours;
+      dynamicConsumption = fuelState.averageConsumption + ((initialRemainder - remainder) / lastFlightDurationHours);
     }
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Заголовок
-            const Text(
-              'Топливо (л)',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            
-            // Инфо-блок
-            Text(
-              'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}, ${initialRemainder.toStringAsFixed(1)} л',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Расход: ${dynamicConsumption.toStringAsFixed(1)} л/ч',
-              style: const TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 12,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Заголовок
+              const Text(
+                'Топливо (л)',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              
+              // Инфо-блок
+              if (lastFlightDurationHours <= 0)
+                const Text(
+                  'Крайний полёт: Нет данных',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                )
+              else
+                Column(
+                  children: [
+                    Text(
+                      'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    Text(
+                      'Остаток: ${initialRemainder.toStringAsFixed(1)} л, Расход: ${fuelState.averageConsumption.toStringAsFixed(1)} л/ч',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 4),
+              Text(
+                'Новый расход: ${dynamicConsumption.toStringAsFixed(1)} л/ч',
+                style: const TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
 
             // Блок Остатка
             _buildRow('Остаток:', remainder, (val) {
@@ -199,7 +220,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildRow(String label, double value, ValueChanged<double> onChanged) {

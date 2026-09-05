@@ -84,16 +84,17 @@ class FuelNotifier extends StateNotifier<FuelState> {
 
     final shouldCorrect = state.autoCorrectConsumption && (!isSimulator || state.correctInSimulator);
 
-    // Расчет реального расхода и корректировка EMA
+    // Расчет реального расхода
     if (shouldCorrect && remainder != state.remainder && state.lastFlightDurationHours > 0) {
-      final realConsumption = (state.remainder - remainder) / state.lastFlightDurationHours;
+      final realConsumption = state.averageConsumption + ((state.remainder - remainder) / state.lastFlightDurationHours);
       
       // Защита от сумасшедших значений
       if (realConsumption > 1.0 && realConsumption < 20.0) {
-        newAvg = state.averageConsumption * 0.8 + realConsumption * 0.2;
+        newAvg = realConsumption;
       }
       
-      newLastFlightDuration = 0.0; // Сбрасываем только если произвели корректировку
+      // По запросу: время полёта остаётся постоянным, не сбрасываем.
+      // newLastFlightDuration = 0.0;
     }
 
     final newRemainder = remainder + added;

@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.6] - 2026-09-05
+### Fixed
+- Fixed Fuel Dialog dynamic consumption calculation logic: removed EMA smoothing for immediate manual input to ensure accurate recalculation, and retained flight time upon save.
+- Improved Fuel Dialog layout for tablets (like Hugerock X7) in landscape mode by wrapping it in `SafeArea` with a 90% screen height constraint, and formatted the info blocks exactly per the new spec.
+
 ## [1.16.5] - 2026-09-05
 ### Added
 - Added `correctInSimulator` toggle in Fuel Settings to optionally prevent EMA correction and recording flight data during simulation.
