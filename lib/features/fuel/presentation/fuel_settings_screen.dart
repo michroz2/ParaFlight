@@ -75,6 +75,14 @@ class FuelSettingsScreen extends ConsumerWidget {
                 ? (val) => notifier.toggleAutoCorrect(val)
                 : null,
           ),
+          SwitchListTile(
+            title: const Text('Корректировать при симуляции'),
+            subtitle: const Text('Пересчитывать расход во время использования симулятора'),
+            value: fuelState.correctInSimulator,
+            onChanged: fuelState.enableFuelTracking
+                ? (val) => notifier.toggleCorrectInSimulator(val)
+                : null,
+          ),
         ],
       ),
     );

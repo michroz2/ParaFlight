@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.5] - 2026-09-05
+### Added
+- Added `correctInSimulator` toggle in Fuel Settings to optionally prevent EMA correction and recording flight data during simulation.
+### Changed
+- Wrapped Fuel Dialog content in a `SingleChildScrollView` and reduced paddings to prevent overflow on smaller tablets.
+- Updated the "Last flight" info block in Fuel Dialog to dynamically calculate and display the prospective consumption as the user adjusts the remainder.
+
 ## [1.16.4] - 2026-09-05
 ### Fixed
 - Reserved layout space for the overflow warning in the Fuel Dialog to prevent dialog height changes.

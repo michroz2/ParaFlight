@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/preferences/preferences_provider.dart';
+import '../../../core/location/location_state.dart';
 import '../domain/fuel_state.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart';
 import '../../flight_detector/domain/flight_state.dart';
@@ -12,6 +13,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
 
   static const String _keyEnableTracking = 'fuel_enable_tracking';
   static const String _keyAutoCorrect = 'fuel_auto_correct';
+  static const String _keyCorrectInSimulator = 'fuel_correct_in_simulator';
   static const String _keyAvgConsumption = 'fuel_average_consumption';
   static const String _keyRemainder = 'fuel_calculated_remainder';
   static const String _keyTankCapacity = 'fuel_tank_capacity';
@@ -24,6 +26,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
   void _loadFromPrefs() {
     final enable = _prefs.getBool(_keyEnableTracking) ?? true;
     final autoCorrect = _prefs.getBool(_keyAutoCorrect) ?? true;
+    final correctInSim = _prefs.getBool(_keyCorrectInSimulator) ?? false;
     final avg = _prefs.getDouble(_keyAvgConsumption) ?? 4.0;
     final remainder = _prefs.getDouble(_keyRemainder) ?? 0.0;
     final capacity = _prefs.getDouble(_keyTankCapacity) ?? 15.0;
@@ -32,6 +35,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
     state = FuelState(
       enableFuelTracking: enable,
       autoCorrectConsumption: autoCorrect,
+      correctInSimulator: correctInSim,
       averageConsumption: avg,
       remainder: remainder,
       tankCapacity: capacity,
@@ -42,6 +46,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
   Future<void> _saveToPrefs() async {
     await _prefs.setBool(_keyEnableTracking, state.enableFuelTracking);
     await _prefs.setBool(_keyAutoCorrect, state.autoCorrectConsumption);
+    await _prefs.setBool(_keyCorrectInSimulator, state.correctInSimulator);
     await _prefs.setDouble(_keyAvgConsumption, state.averageConsumption);
     await _prefs.setDouble(_keyRemainder, state.remainder);
     await _prefs.setDouble(_keyTankCapacity, state.tankCapacity);
@@ -58,6 +63,11 @@ class FuelNotifier extends StateNotifier<FuelState> {
     _saveToPrefs();
   }
 
+  void toggleCorrectInSimulator(bool enable) {
+    state = state.copyWith(correctInSimulator: enable);
+    _saveToPrefs();
+  }
+
   void setAverageConsumption(double consumption) {
     state = state.copyWith(averageConsumption: consumption);
     _saveToPrefs();
@@ -68,17 +78,22 @@ class FuelNotifier extends StateNotifier<FuelState> {
     _saveToPrefs();
   }
 
-  void updateFuel(double remainder, double added) {
+  void updateFuel(double remainder, double added, bool isSimulator) {
     double newAvg = state.averageConsumption;
+    double newLastFlightDuration = state.lastFlightDurationHours;
+
+    final shouldCorrect = state.autoCorrectConsumption && (!isSimulator || state.correctInSimulator);
 
     // Расчет реального расхода и корректировка EMA
-    if (state.autoCorrectConsumption && remainder != state.remainder && state.lastFlightDurationHours > 0) {
+    if (shouldCorrect && remainder != state.remainder && state.lastFlightDurationHours > 0) {
       final realConsumption = (state.remainder - remainder) / state.lastFlightDurationHours;
       
       // Защита от сумасшедших значений
       if (realConsumption > 1.0 && realConsumption < 20.0) {
         newAvg = state.averageConsumption * 0.8 + realConsumption * 0.2;
       }
+      
+      newLastFlightDuration = 0.0; // Сбрасываем только если произвели корректировку
     }
 
     final newRemainder = remainder + added;
@@ -86,7 +101,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
     state = state.copyWith(
       averageConsumption: newAvg,
       remainder: newRemainder,
-      lastFlightDurationHours: 0.0, // Сбрасываем, так как корректировка учтена
+      lastFlightDurationHours: newLastFlightDuration,
     );
     
     _saveToPrefs();
@@ -106,7 +121,11 @@ class FuelNotifier extends StateNotifier<FuelState> {
     // сохранение будет происходить по триггеру (посадка или выход)
   }
 
-  void recordFlightEnd(Duration flightDuration) {
+  void recordFlightEnd(Duration flightDuration, bool isSimulator) {
+    if (isSimulator && !state.correctInSimulator) {
+      return; // Не записываем данные крайнего полета при симуляции, если настройка отключена
+    }
+
     final hours = flightDuration.inMilliseconds / 3600000.0;
     state = state.copyWith(lastFlightDurationHours: hours);
     _saveToPrefs();
@@ -136,7 +155,8 @@ final fuelProvider = StateNotifierProvider<FuelNotifier, FuelState>((ref) {
     // Сохранение при посадке (переход из inFlight в другое состояние)
     if (previous.state == FlightState.inFlight && next.state != FlightState.inFlight) {
       if (next.flights.isNotEmpty) {
-        notifier.recordFlightEnd(next.flights.last.duration);
+        final isSim = ref.read(dataSourceProvider) == DataSource.simulator;
+        notifier.recordFlightEnd(next.flights.last.duration, isSim);
       }
     }
   });

@@ -1,10 +1,12 @@
 // Версия: 0.2.0 | Цель: Диалоговое окно управления топливом (Glove-Friendly BottomSheet)
 
 import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/fuel_provider.dart';
 import 'widgets/repeating_icon_button.dart';
+import '../../../core/location/location_state.dart';
 
 class FuelDialog extends ConsumerStatefulWidget {
   const FuelDialog({super.key});
@@ -18,6 +20,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
   late double added;
   late double tankCapacity;
   late double lastFlightDurationHours;
+  late double initialRemainder;
   
   // Начальное значение для поля "Добавлено" (на случай выноса в настройки)
   final double _initialAddedValue = 0.0;
@@ -27,6 +30,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
     super.initState();
     final fuelState = ref.read(fuelProvider);
     remainder = fuelState.remainder;
+    initialRemainder = fuelState.remainder;
     tankCapacity = fuelState.tankCapacity;
     lastFlightDurationHours = fuelState.lastFlightDurationHours;
     added = _initialAddedValue;
@@ -47,137 +51,153 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
   @override
   Widget build(BuildContext context) {
     final isOverflow = inTank > tankCapacity;
+    final fuelState = ref.watch(fuelProvider);
+    final isSimulator = ref.watch(dataSourceProvider) == DataSource.simulator;
+
+    // Динамический расчет расхода
+    double dynamicConsumption = fuelState.averageConsumption;
+    if (lastFlightDurationHours > 0 && remainder != initialRemainder) {
+      dynamicConsumption = (initialRemainder - remainder) / lastFlightDurationHours;
+    }
 
     return Container(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Заголовок
-          const Text(
-            'Топливо (л)',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          
-          // Инфо-блок
-          Text(
-            'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}',
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Заголовок
+            const Text(
+              'Топливо (л)',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            
+            // Инфо-блок
+            Text(
+              'Крайний полёт: ${_formatDuration(lastFlightDurationHours)}, ${initialRemainder.toStringAsFixed(1)} л',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Расход: ${dynamicConsumption.toStringAsFixed(1)} л/ч',
+              style: const TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
 
-          // Блок Остатка
-          _buildRow('Остаток:', remainder, (val) {
-            setState(() {
-              remainder = min(max(0.0, val), tankCapacity);
-            });
-          }),
-          const SizedBox(height: 16),
-          
-          // Блок Добавлено
-          _buildRow('Добавлено:', added, (val) {
-            setState(() {
-              added = max(0.0, val);
-            });
-          }),
-          const SizedBox(height: 24),
-          
-          // Кнопка Полный бак
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: OutlinedButton(
-              onPressed: () {
-                setState(() {
-                  added = max(0.0, tankCapacity - remainder);
-                });
-              },
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text(
-                'ПОЛНЫЙ БАК (${tankCapacity.toStringAsFixed(1)} л)',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // Блок Остатка
+            _buildRow('Остаток:', remainder, (val) {
+              setState(() {
+                remainder = min(max(0.0, val), tankCapacity);
+              });
+            }),
+            const SizedBox(height: 8),
+            
+            // Блок Добавлено
+            _buildRow('Добавлено:', added, (val) {
+              setState(() {
+                added = max(0.0, val);
+              });
+            }),
+            const SizedBox(height: 12),
+            
+            // Кнопка Полный бак
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    added = max(0.0, tankCapacity - remainder);
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  'ПОЛНЫЙ БАК (${tankCapacity.toStringAsFixed(1)} л)',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Итог
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'В баке: ',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                inTank.toStringAsFixed(1),
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: isOverflow ? Colors.red : Colors.green,
+            const SizedBox(height: 16),
+            
+            // Итог
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'В баке: ',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
-          ),
-          Visibility(
-            visible: isOverflow,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: const Padding(
-              padding: EdgeInsets.only(top: 8.0),
-              child: Text(
-                'Внимание: превышена ёмкость бака!',
-                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  inTank.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: isOverflow ? Colors.red : Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            Visibility(
+              visible: isOverflow,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: const Padding(
+                padding: EdgeInsets.only(top: 4.0),
+                child: Text(
+                  'Внимание: превышена ёмкость бака!',
+                  style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
-          // Подвал (кнопки)
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 64,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            // Подвал (кнопки)
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 64,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('ОТМЕНА', style: TextStyle(fontSize: 20)),
                     ),
-                    child: const Text('ОТМЕНА', style: TextStyle(fontSize: 20)),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 64,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      ref.read(fuelProvider.notifier).updateFuel(remainder, added);
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 64,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref.read(fuelProvider.notifier).updateFuel(remainder, added, isSimulator);
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -187,7 +207,7 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
