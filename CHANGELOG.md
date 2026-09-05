@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.3] - 2026-09-05
+### Changed
+- Redesigned Fuel Dialog to a Glove-Friendly BottomSheet.
+- Replaced standard buttons with `RepeatingIconButton` supporting continuous press for easier adjustments.
+- Changed adjustment step from 0.5 to 0.1 liters.
+- Added info block about the last flight duration.
+
 ## [1.15.2] - 2026-09-05
 - Fixed map starting at (0, 0) and missing plane marker by using `getLastKnownPosition` before stream starts.
 - Added missing `GeolocatorLocationService` declaration to AndroidManifest to prevent ForegroundService crash on startup.

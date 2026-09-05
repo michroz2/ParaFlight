@@ -67,9 +67,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   void _showFuelDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => const FuelDialog(),
     );
   }
