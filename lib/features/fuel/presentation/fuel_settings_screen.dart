@@ -8,6 +8,7 @@ class FuelSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fuelState = ref.watch(fuelProvider);
+    final notifier = ref.read(fuelProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -20,21 +21,59 @@ class FuelSettingsScreen extends ConsumerWidget {
             subtitle: const Text('Отображать расчет на главном экране'),
             value: fuelState.enableFuelTracking,
             onChanged: (val) {
-              ref.read(fuelProvider.notifier).toggleTracking(val);
+              notifier.toggleTracking(val);
             },
           ),
           const Divider(),
           ListTile(
-            title: const Text('Расход (л/ч)'),
-            subtitle: Text(fuelState.averageConsumption.toStringAsFixed(1)),
-            enabled: fuelState.enableFuelTracking,
-            // Здесь в будущем можно добавить диалог для ручного изменения расхода,
-            // но пока оставим просто для информации или добавим логику
-          ),
-          ListTile(
             title: const Text('Ёмкость бака (л)'),
-            subtitle: Text(fuelState.tankCapacity.toStringAsFixed(1)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(fuelState.tankCapacity.toStringAsFixed(1)),
+                Slider(
+                  value: fuelState.tankCapacity,
+                  min: 0,
+                  max: 30,
+                  divisions: 60,
+                  label: fuelState.tankCapacity.toStringAsFixed(1),
+                  onChanged: fuelState.enableFuelTracking
+                      ? (val) => notifier.setTankCapacity(val)
+                      : null,
+                ),
+              ],
+            ),
             enabled: fuelState.enableFuelTracking,
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Расход (л/ч)'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(fuelState.averageConsumption.toStringAsFixed(1)),
+                Slider(
+                  value: fuelState.averageConsumption,
+                  min: 0,
+                  max: 15,
+                  divisions: 30,
+                  label: fuelState.averageConsumption.toStringAsFixed(1),
+                  onChanged: fuelState.enableFuelTracking
+                      ? (val) => notifier.setAverageConsumption(val)
+                      : null,
+                ),
+              ],
+            ),
+            enabled: fuelState.enableFuelTracking,
+          ),
+          const Divider(),
+          SwitchListTile(
+            title: const Text('Корректировать расход автоматически'),
+            subtitle: const Text('Пересчитывать расход на основе введенного остатка'),
+            value: fuelState.autoCorrectConsumption,
+            onChanged: fuelState.enableFuelTracking
+                ? (val) => notifier.toggleAutoCorrect(val)
+                : null,
           ),
         ],
       ),

@@ -11,6 +11,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
   final SharedPreferences _prefs;
 
   static const String _keyEnableTracking = 'fuel_enable_tracking';
+  static const String _keyAutoCorrect = 'fuel_auto_correct';
   static const String _keyAvgConsumption = 'fuel_average_consumption';
   static const String _keyRemainder = 'fuel_calculated_remainder';
   static const String _keyTankCapacity = 'fuel_tank_capacity';
@@ -22,6 +23,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
 
   void _loadFromPrefs() {
     final enable = _prefs.getBool(_keyEnableTracking) ?? true;
+    final autoCorrect = _prefs.getBool(_keyAutoCorrect) ?? true;
     final avg = _prefs.getDouble(_keyAvgConsumption) ?? 4.0;
     final remainder = _prefs.getDouble(_keyRemainder) ?? 0.0;
     final capacity = _prefs.getDouble(_keyTankCapacity) ?? 15.0;
@@ -29,6 +31,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
 
     state = FuelState(
       enableFuelTracking: enable,
+      autoCorrectConsumption: autoCorrect,
       averageConsumption: avg,
       remainder: remainder,
       tankCapacity: capacity,
@@ -38,6 +41,7 @@ class FuelNotifier extends StateNotifier<FuelState> {
 
   Future<void> _saveToPrefs() async {
     await _prefs.setBool(_keyEnableTracking, state.enableFuelTracking);
+    await _prefs.setBool(_keyAutoCorrect, state.autoCorrectConsumption);
     await _prefs.setDouble(_keyAvgConsumption, state.averageConsumption);
     await _prefs.setDouble(_keyRemainder, state.remainder);
     await _prefs.setDouble(_keyTankCapacity, state.tankCapacity);
@@ -49,11 +53,26 @@ class FuelNotifier extends StateNotifier<FuelState> {
     _saveToPrefs();
   }
 
+  void toggleAutoCorrect(bool enable) {
+    state = state.copyWith(autoCorrectConsumption: enable);
+    _saveToPrefs();
+  }
+
+  void setAverageConsumption(double consumption) {
+    state = state.copyWith(averageConsumption: consumption);
+    _saveToPrefs();
+  }
+
+  void setTankCapacity(double capacity) {
+    state = state.copyWith(tankCapacity: capacity);
+    _saveToPrefs();
+  }
+
   void updateFuel(double remainder, double added) {
     double newAvg = state.averageConsumption;
 
     // Расчет реального расхода и корректировка EMA
-    if (remainder != state.remainder && state.lastFlightDurationHours > 0) {
+    if (state.autoCorrectConsumption && remainder != state.remainder && state.lastFlightDurationHours > 0) {
       final realConsumption = (state.remainder - remainder) / state.lastFlightDurationHours;
       
       // Защита от сумасшедших значений

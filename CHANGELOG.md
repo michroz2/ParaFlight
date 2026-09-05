@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Added Fuel Tracking system (Учёт топлива) with dynamic calculation in flight based on EMA.
 - Added Fuel settings toggle and configuration in Settings.
 - Added interactive Fuel dialog on the Dashboard to input remainder and added fuel.
+- Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
+- Added toggle for automatic EMA consumption correction.
 
 ## [1.15.2] - 2026-09-05
 - Fixed map starting at (0, 0) and missing plane marker by using `getLastKnownPosition` before stream starts.
