@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.16] - 2026-09-06
+### Fixed
+- Hardened background tracking against Riverpod widget-tree lifecycle dormancy by moving `realGpsTrackProvider` and `flightDetectorProvider` listeners entirely outside of the Flutter widget tree. They are now attached directly to a standalone `ProviderContainer` in `main.dart`, guaranteeing they never pause even if the UI element tree is heavily suspended or reconstructed by the OS.
+
 ## [1.16.15] - 2026-09-06
 ### Fixed
 - Fixed build failure caused by `permission_handler` v13.0.2 requiring Android API 37 by downgrading to `permission_handler: ^11.3.1` which is compatible with the stable API 34.

@@ -22,15 +22,26 @@ void main() async {
   final tracksManager = TracksManager();
   await tracksManager.initialize(sharedPreferences);
 
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      tracksManagerProvider.overrideWithValue(tracksManager),
+    ],
+  );
+
+  // Форсированно запускаем трекинг и детектор вне дерева виджетов
+  container.read(realGpsTrackProvider);
+  container.read(flightDetectorProvider);
+  
+  // Вешаем слушателей прямо на контейнер, чтобы они никогда не засыпали
+  container.listen(realGpsTrackProvider, (prev, next) {});
+  container.listen(flightDetectorProvider, (prev, next) {});
+
   runApp(
-    ProviderScope(
-      overrides: [
-        // Передаем созданный инстанс в провайдер-заглушку
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-        tracksManagerProvider.overrideWithValue(tracksManager),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const ParaFlightApp(),
-    ), // конец ProviderScope
+    ), // конец UncontrolledProviderScope
   ); // конец runApp
 } // конец main
 
@@ -44,12 +55,6 @@ class ParaFlightApp extends ConsumerWidget {
     // и применили свои _applyState() (Ориентация и Wakelock)
     ref.watch(wakelockProvider);
     ref.watch(orientationProvider);
-    
-    // Глобальные подписчики на ключевые трекинговые сервисы,
-    // чтобы они никогда не "засыпали" (не уходили в dormant state),
-    // даже если DashboardScreen размонтирован или приложение свернуто.
-    ref.listen(realGpsTrackProvider, (prev, next) {});
-    ref.listen(flightDetectorProvider, (prev, next) {});
 
     return const MaterialApp(
       title: 'ParaFlight',
