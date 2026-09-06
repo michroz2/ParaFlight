@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.14] - 2026-09-06
+### Added
+- Added `permission_handler` package to explicitly request `POST_NOTIFICATIONS` and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` at startup. This prevents Android 13+ from silently killing the `Geolocator` Foreground Service by ensuring it has a visible sticky notification and is whitelisted from battery optimization.
+
 ## [1.16.13] - 2026-09-06
 ### Fixed
 - Fixed critical bug where GPS tracking, flight detection, and path recording would stop working in the background (or when navigating away from the Dashboard screen). The bug was caused by Riverpod providers (`realGpsTrackProvider`, `flightDetectorProvider`) going dormant when losing all UI listeners. Added global watchers in `ParaFlightApp` to keep core tracking systems alive continuously.

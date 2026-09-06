@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart'; // для compute
+import 'package:permission_handler/permission_handler.dart';
 
 import '../preferences/preferences_provider.dart';
 
@@ -129,10 +130,19 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     throw Exception('Разрешения на геолокацию отклонены навсегда.');
   }
 
-  if (permission == LocationPermission.whileInUse) {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      // Запрашиваем фоновые права для надежной работы при свернутом приложении.
-      // На Android 11+ это откроет настройки приложения, где нужно выбрать "Разрешить в любом режиме".
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    // 1. Запрашиваем права на уведомления для Foreground Service (Android 13+)
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+    
+    // 2. Запрашиваем исключение из оптимизации батареи (Battery Optimization Bypass)
+    if (await Permission.ignoreBatteryOptimizations.isDenied) {
+      await Permission.ignoreBatteryOptimizations.request();
+    }
+
+    // 3. Запрашиваем фоновые права для надежной работы локации
+    if (permission == LocationPermission.whileInUse) {
       try {
         permission = await Geolocator.requestPermission();
       } catch (e) {
