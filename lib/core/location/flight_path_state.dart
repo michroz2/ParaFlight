@@ -16,7 +16,6 @@ class TrackSegment {
   TrackSegment({required this.points, required this.isFlight});
 }
 
-// Новое: Класс для накопления точек реального GPS
 class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
   DateTime? _lastRecordTime;
 
@@ -29,29 +28,24 @@ class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
       }
     });
 
-    // Подписываемся на локацию, добавляем точки только в режиме GPS
-    ref.listen(locationProvider, (previous, asyncLocation) {
-      final loc = asyncLocation.valueOrNull;
-      final source = ref.read(dataSourceProvider);
-      debugPrint('RealGpsTrackNotifier listen | loc: ${loc?.latitude}, ${loc?.longitude} | source: $source');
-      
-      if (loc != null && source == DataSource.internalGps) {
-        final config = ref.read(trackConfigProvider);
-        final intervalMs = (config.gpsRecordIntervalSec * 1000).toInt();
-
-        if (_lastRecordTime == null ||
-            loc.timestamp.difference(_lastRecordTime!).inMilliseconds >=
-                intervalMs) {
-          debugPrint('RealGpsTrackNotifier | Adding point to state');
-          state = [...state, loc];
-          _lastRecordTime = loc.timestamp;
-        } else {
-          debugPrint('RealGpsTrackNotifier | Point ignored due to interval');
-        }
-      } // конец if
-    });
     return [];
   } // конец метода build
+  
+  // Вызывается напрямую из realGpsProvider, чтобы обойти батчинг Riverpod
+  void addPoint(LocationEntity loc) {
+    final source = ref.read(dataSourceProvider);
+    if (source != DataSource.internalGps) return;
+    
+    final config = ref.read(trackConfigProvider);
+    final intervalMs = (config.gpsRecordIntervalSec * 1000).toInt();
+
+    if (_lastRecordTime == null ||
+        loc.timestamp.difference(_lastRecordTime!).inMilliseconds >= intervalMs) {
+      debugPrint('RealGpsTrackNotifier | Adding point to state (direct)');
+      state = [...state, loc];
+      _lastRecordTime = loc.timestamp;
+    }
+  }
 
   void clear() {
     state = [];

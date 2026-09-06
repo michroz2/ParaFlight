@@ -109,11 +109,11 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
 
   ref.listen(locationProvider, (previous, asyncLocation) {
     final location = asyncLocation.valueOrNull;
-    if (location != null) {
+    if (location != null && ref.read(dataSourceProvider) == DataSource.simulator) {
       final currentWind = ref.read(windProvider);
       notifier.updateLocation(
         location,
-        ref.read(dataSourceProvider) == DataSource.simulator,
+        true,
         currentWind,
       );
     }

@@ -27,6 +27,10 @@ import 'playback_state.dart';
 import 'playback_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'flight_path_state.dart';
+import '../../features/flight_detector/presentation/flight_detector_provider.dart';
+import '../../features/wind/presentation/wind_provider.dart';
+
 // Новое: Провайдер выбранного GPX файла
 final selectedGpxFileProvider = StateNotifierProvider<SelectedGpxFileNotifier, String?>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -229,6 +233,15 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
           timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
         );
         debugPrint('RAW GPS POSITION (Background): ${loc.latitude}, ${loc.longitude}, speed: ${loc.speed}');
+        
+        // Прямое обновление трека и детектора без Riverpod-батчинга!
+        // Это критично для корректной работы из фона при быстрой выгрузке порта
+        Future.microtask(() {
+          ref.read(realGpsTrackProvider.notifier).addPoint(loc);
+          final currentWind = ref.read(windProvider);
+          ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
+        });
+        
         yield loc;
       } catch (e) {
         debugPrint('Ошибка парсинга данных из фона: $e');
