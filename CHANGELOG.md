@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.12] - 2026-09-06
+### Fixed
+- Fixed `SecurityException: Neither user nor current process has android.permission.WAKE_LOCK` crash when `Geolocator` starts the foreground service. Added `WAKE_LOCK` permission to `AndroidManifest.xml` to satisfy `enableWakeLock: true` setting in `AndroidSettings`.
+
 ## [1.16.11] - 2026-09-06
 ### Added
 - Added full diagnostic logging (debugPrint) across the entire geolocation data chain to trace the source of the emulator marker bug.
