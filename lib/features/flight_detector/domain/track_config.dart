@@ -40,7 +40,7 @@ class TrackConfig {
   /// Окно поворота на перекрестке (сек)
   final int cfvTurnWindowSec;
 
-  /// Интервал записи GPS (сек)
+  /// Интервал записи GPX (сек)
   final double gpsRecordIntervalSec;
 
   /// Настройка обрезки лишнего трека после посадки

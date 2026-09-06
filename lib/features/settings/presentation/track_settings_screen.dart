@@ -219,7 +219,7 @@ class TrackSettingsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           ListTile(
-            title: const Text('Интервал записи GPS (сек)'),
+            title: const Text('Интервал записи GPX (сек)'),
             subtitle: Text(config.gpsRecordIntervalSec.toStringAsFixed(1)),
             trailing: SizedBox(
               width: 150,

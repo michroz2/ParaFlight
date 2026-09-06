@@ -9,8 +9,12 @@ import 'dart:isolate';
 
 import 'package:flutter/foundation.dart'; // для compute
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'dart:convert';
 
 import '../preferences/preferences_provider.dart';
+import '../../features/flight_detector/presentation/track_config_provider.dart';
+import 'background_location_task.dart';
 
 import 'location_entity.dart';
 import 'gpx_parse_state.dart';
@@ -109,6 +113,7 @@ final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>
 });
 
 // Провайдер реального GPS через Geolocator
+// Провайдер реального GPS через Geolocator + FlutterForegroundTask
 final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   bool serviceEnabled;
   LocationPermission permission;
@@ -131,17 +136,12 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   }
 
   if (defaultTargetPlatform == TargetPlatform.android) {
-    // 1. Запрашиваем права на уведомления для Foreground Service (Android 13+)
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
     }
-    
-    // 2. Запрашиваем исключение из оптимизации батареи (Battery Optimization Bypass)
     if (await Permission.ignoreBatteryOptimizations.isDenied) {
       await Permission.ignoreBatteryOptimizations.request();
     }
-
-    // 3. Запрашиваем фоновые права для надежной работы локации
     if (permission == LocationPermission.whileInUse) {
       try {
         permission = await Geolocator.requestPermission();
@@ -151,45 +151,13 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     }
   }
 
-  LocationSettings locationSettings;
-  
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    locationSettings = AndroidSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
-      forceLocationManager: true,
-      intervalDuration: const Duration(seconds: 1),
-      foregroundNotificationConfig: const ForegroundNotificationConfig(
-        notificationText: "Запись трека и геоданных",
-        notificationTitle: "ParaFlight Трекинг",
-        enableWakeLock: true,
-      ),
-    );
-  } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
-    locationSettings = AppleSettings(
-      accuracy: LocationAccuracy.high,
-      activityType: ActivityType.fitness,
-      distanceFilter: 0,
-      pauseLocationUpdatesAutomatically: false,
-      showBackgroundLocationIndicator: true,
-    );
-  } else {
-    locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
-    );
-  }
-
+  // Пытаемся получить последнюю позицию быстро
   try {
     debugPrint('realGpsProvider: calling getLastKnownPosition');
     final lastPosition = await Geolocator.getLastKnownPosition().timeout(
       const Duration(seconds: 2),
-      onTimeout: () {
-        debugPrint('realGpsProvider: getLastKnownPosition timed out');
-        return null;
-      },
+      onTimeout: () => null,
     );
-    debugPrint('realGpsProvider: getLastKnownPosition returned: $lastPosition');
     if (lastPosition != null) {
       yield LocationEntity(
         latitude: lastPosition.latitude,
@@ -202,25 +170,76 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     }
   } catch (e) {
     debugPrint('realGpsProvider: getLastKnownPosition threw: $e');
-    // Игнорируем ошибку получения последней позиции
   }
 
-  debugPrint('realGpsProvider: starting getPositionStream');
-  yield* Geolocator.getPositionStream(
-    locationSettings: locationSettings,
-  ).handleError((error) {
-    debugPrint('realGpsProvider: getPositionStream error: $error');
-  }).map((Position position) {
-    debugPrint('RAW GPS POSITION: ${position.latitude}, ${position.longitude}, speed: ${position.speed}');
-    return LocationEntity(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      altitude: position.altitude,
-      speed: position.speed, // в м/с
-      heading: position.heading, // в градусах
-      timestamp: position.timestamp ?? DateTime.now(),
+  // Изменение: Инициализация FlutterForegroundTask
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'location_tracking',
+      channelName: 'Location Tracking',
+      channelDescription: 'Активный трекинг маршрута',
+      channelImportance: NotificationChannelImportance.HIGH,
+      priority: NotificationPriority.HIGH,
+      iconData: const NotificationIconData(
+        resType: ResourceType.mipmap,
+        resPrefix: ResourcePrefix.ic,
+        name: 'launcher',
+      ),
+    ),
+    iosNotificationOptions: const IOSNotificationOptions(
+      showNotification: true,
+      playSound: false,
+    ),
+    foregroundTaskOptions: const ForegroundTaskOptions(
+      interval: 5000,
+      isOnceEvent: true,
+      autoRunOnBoot: false,
+      allowWakeLock: true,
+      allowWifiLock: true,
+    ),
+  );
+
+  final config = ref.read(trackConfigProvider);
+  final intervalMs = (config.gpsRecordIntervalSec * 1000).toInt();
+
+  // Сохраняем интервал для фонового изолята
+  await FlutterForegroundTask.saveData(key: 'intervalMs', value: intervalMs.toString());
+
+  if (!await FlutterForegroundTask.isRunningService) {
+    debugPrint('realGpsProvider: Запуск Background Service');
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'ParaFlight',
+      notificationText: 'GPS активен в фоне',
+      callback: startCallback,
     );
-  }); // конец map
+  }
+
+  // Слушаем порт от фонового изолята
+  debugPrint('realGpsProvider: starting receivePort stream');
+  await for (final data in FlutterForegroundTask.receivePort!) {
+    if (data is String) {
+      try {
+        final map = jsonDecode(data);
+        final loc = LocationEntity(
+          latitude: map['latitude'],
+          longitude: map['longitude'],
+          altitude: map['altitude'],
+          speed: map['speed'],
+          heading: map['heading'],
+          timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
+        );
+        debugPrint('RAW GPS POSITION (Background): ${loc.latitude}, ${loc.longitude}, speed: ${loc.speed}');
+        yield loc;
+      } catch (e) {
+        debugPrint('Ошибка парсинга данных из фона: $e');
+      }
+    }
+  }
+
+  // При остановке провайдера стопаем сервис
+  ref.onDispose(() {
+    FlutterForegroundTask.stopService();
+  });
 }); // конец realGpsProvider
 
 final locationProvider = Provider<AsyncValue<LocationEntity?>>((ref) {

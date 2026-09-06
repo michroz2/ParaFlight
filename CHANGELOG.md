@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.18] - 2026-09-06
+### Added
+- Implemented **Fast-Forward Background Isolate Strategy** using `flutter_foreground_task` to prevent Android Doze Mode and Flutter Engine from suspending the GPS stream when the app goes into the background. 
+- Transferred the rate limiting logic (based on `gpsRecordIntervalSec`) directly into the background isolate to protect the Dart Event Loop from overflowing with messages while the UI isolate is suspended.
+- Switched from the legacy Android LocationManager back to FusedLocationProviderClient for significantly improved battery efficiency and precision.
+
 ## [1.16.17] - 2026-09-06
 ### Added
 - Added a diagnostic `Timer.periodic` in `main.dart` to determine if the Flutter Engine is suspending the Dart UI Isolate when the app goes into the background on Android.

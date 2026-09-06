@@ -36,9 +36,9 @@
             </intent-filter>
         </activity>
         
-        <!-- Обязательно для Foreground Service в Geolocator на Android 14+ -->
+        <!-- Обязательно для Foreground Service (flutter_foreground_task) на Android 14+ -->
         <service
-            android:name="com.baseflow.geolocator.GeolocatorLocationService"
+            android:name="com.pravera.flutter_foreground_task.services.ForegroundService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
