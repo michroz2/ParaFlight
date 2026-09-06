@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.22] - 2026-09-06
+### Changed
+- Откат временного фикса v1.16.21.
+- Внедрено централизованное прореживание GPS-координат (downsampling) на уровне `realGpsProvider`. Теперь `RealGpsTrackNotifier` и `FlightDetectorNotifier` получают идентичный поток прореженных точек, исключая возможность рассинхронизации стейтов и визуализации.
+
 ## [1.16.0] - 2026-09-05
 ### Added
 - Added Fuel Tracking system (Учёт топлива) with dynamic calculation in flight based on EMA.

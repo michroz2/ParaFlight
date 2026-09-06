@@ -17,8 +17,6 @@ class TrackSegment {
 }
 
 class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
-  DateTime? _lastRecordTime;
-
   @override
   List<LocationEntity> build() {
     // Подписываемся на смену источника для очистки трека
@@ -36,20 +34,13 @@ class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
     final source = ref.read(dataSourceProvider);
     if (source != DataSource.internalGps) return;
     
-    final config = ref.read(trackConfigProvider);
-    final intervalMs = (config.gpsRecordIntervalSec * 1000).toInt();
-
-    if (_lastRecordTime == null ||
-        loc.timestamp.difference(_lastRecordTime!).inMilliseconds >= intervalMs) {
-      debugPrint('RealGpsTrackNotifier | Adding point to state (direct)');
-      state = [...state, loc];
-      _lastRecordTime = loc.timestamp;
-    }
+    // Прореживание теперь выполняется централизованно в realGpsProvider
+    debugPrint('RealGpsTrackNotifier | Adding point to state (direct)');
+    state = [...state, loc];
   }
 
   void clear() {
     state = [];
-    _lastRecordTime = null;
   }
 } // конец класса RealGpsTrackNotifier
 
@@ -61,12 +52,11 @@ final realGpsTrackProvider =
 // Изменение: Переключатель трека возвращает сегментированный трек
 final flightPathProvider = Provider<List<TrackSegment>>((ref) {
   final dataSource = ref.watch(dataSourceProvider);
-  List<LocationEntity> sourceEntities = [];
   List<LatLng> rawPoints = [];
 
   if (dataSource == DataSource.internalGps) {
-    sourceEntities = ref.watch(realGpsTrackProvider);
-    rawPoints = sourceEntities.map((e) => LatLng(e.latitude, e.longitude)).toList();
+    final entities = ref.watch(realGpsTrackProvider);
+    rawPoints = entities.map((e) => LatLng(e.latitude, e.longitude)).toList();
   } else {
     // Логика симулятора
     final gpxStateAsync = ref.watch(gpxPointsProvider);
@@ -78,14 +68,14 @@ final flightPathProvider = Provider<List<TrackSegment>>((ref) {
       final currentIndex = ref.watch(
         playbackProvider.select((s) => s.currentIndex),
       );
-      sourceEntities = gpxState.points!.sublist(0, currentIndex + 1);
-      rawPoints = sourceEntities
+      rawPoints = gpxState.points!
+          .sublist(0, currentIndex + 1)
           .map((e) => LatLng(e.latitude, e.longitude))
           .toList();
     }
   }
 
-  if (rawPoints.isEmpty || sourceEntities.isEmpty) return [];
+  if (rawPoints.isEmpty) return [];
 
   final detectorState = ref.watch(flightDetectorProvider);
 
@@ -98,9 +88,10 @@ final flightPathProvider = Provider<List<TrackSegment>>((ref) {
   int currentIndexInRaw = 0;
 
   for (final flight in detectorState.flights) {
-    // Ищем ближайшую точку в треке по времени (так как трек может быть прорежен)
-    int startIndex = sourceEntities.indexWhere(
-      (e) => !e.timestamp.isBefore(flight.start.timestamp),
+    final startLoc = LatLng(flight.start.latitude, flight.start.longitude);
+    int startIndex = rawPoints.indexWhere(
+      (p) =>
+          p.latitude == startLoc.latitude && p.longitude == startLoc.longitude,
       currentIndexInRaw,
     );
 
@@ -125,13 +116,16 @@ final flightPathProvider = Provider<List<TrackSegment>>((ref) {
       break;
     }
 
-    int finishIndex = sourceEntities.indexWhere(
-      (e) => !e.timestamp.isBefore(flight.finish!.timestamp),
+    final finishLoc = LatLng(flight.finish!.latitude, flight.finish!.longitude);
+    int finishIndex = rawPoints.indexWhere(
+      (p) =>
+          p.latitude == finishLoc.latitude &&
+          p.longitude == finishLoc.longitude,
       startIndex,
     );
 
     if (finishIndex == -1 || finishIndex < startIndex) {
-      // Финиш не найден или находится за пределами текущего массива точек - значит полет идет до конца
+      // Финиш не найден или ошибка
       segments.add(
         TrackSegment(points: rawPoints.sublist(startIndex), isFlight: true),
       );

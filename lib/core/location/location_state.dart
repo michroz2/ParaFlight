@@ -117,6 +117,9 @@ final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>
 });
 
 // Провайдер реального GPS через Geolocator
+// Вспомогательная переменная для единого прореживания данных на уровне провайдера
+DateTime? _globalLastRecordTime;
+
 // Провайдер реального GPS через Geolocator + FlutterForegroundTask
 final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   bool serviceEnabled;
@@ -234,15 +237,24 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
         );
         debugPrint('RAW GPS POSITION (Background): ${loc.latitude}, ${loc.longitude}, speed: ${loc.speed}');
         
-        // Прямое обновление трека и детектора без Riverpod-батчинга!
-        // Это критично для корректной работы из фона при быстрой выгрузке порта
-        Future.microtask(() {
-          ref.read(realGpsTrackProvider.notifier).addPoint(loc);
-          final currentWind = ref.read(windProvider);
-          ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
-        });
-        
-        yield loc;
+        // ЕДИНЫЙ ЦЕНТР ПРОРЕЖИВАНИЯ (DOWNSAMPLING)
+        // Проверяем, прошло ли достаточно времени с последней записи
+        if (_globalLastRecordTime == null ||
+            loc.timestamp.difference(_globalLastRecordTime!).inMilliseconds >= intervalMs) {
+          _globalLastRecordTime = loc.timestamp;
+
+          // Прямое обновление трека и детектора без Riverpod-батчинга
+          // ОБА получают абсолютно одинаковый прореженный набор точек
+          Future.microtask(() {
+            ref.read(realGpsTrackProvider.notifier).addPoint(loc);
+            final currentWind = ref.read(windProvider);
+            ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
+          });
+          
+          yield loc;
+        } else {
+          // Игнорируем промежуточные точки
+        }
       } catch (e) {
         debugPrint('Ошибка парсинга данных из фона: $e');
       }
