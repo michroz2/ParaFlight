@@ -360,6 +360,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     ref.listen(locationProvider, (previous, nextAsync) {
       final next = nextAsync.valueOrNull;
+      debugPrint('DashboardScreen listen locationProvider | next loc: ${next?.latitude}, ${next?.longitude}');
       if (next != null) {
         try {
           if (_isTrackingPilot) {
@@ -367,12 +368,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             try {
               z = _mapController.camera.zoom;
             } catch (_) {}
+            debugPrint('DashboardScreen moving map to ${next.latitude}, ${next.longitude}');
             _mapController.move(LatLng(next.latitude, next.longitude), z);
           }
           if (_rotationMode == MapRotationMode.heading) {
             _mapController.rotate(360.0 - next.heading);
           }
         } catch (e) {
+          debugPrint('DashboardScreen map error: $e');
           // Игнорируем ошибку
         }
       }

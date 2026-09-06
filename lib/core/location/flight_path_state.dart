@@ -1,6 +1,7 @@
 // Версия: 0.1.2 | Цель: Провайдер пути полета
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_state.dart';
 import 'location_entity.dart';
@@ -31,16 +32,21 @@ class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
     // Подписываемся на локацию, добавляем точки только в режиме GPS
     ref.listen(locationProvider, (previous, asyncLocation) {
       final loc = asyncLocation.valueOrNull;
-      if (loc != null &&
-          ref.read(dataSourceProvider) == DataSource.internalGps) {
+      final source = ref.read(dataSourceProvider);
+      debugPrint('RealGpsTrackNotifier listen | loc: ${loc?.latitude}, ${loc?.longitude} | source: $source');
+      
+      if (loc != null && source == DataSource.internalGps) {
         final config = ref.read(trackConfigProvider);
         final intervalMs = (config.gpsRecordIntervalSec * 1000).toInt();
 
         if (_lastRecordTime == null ||
             loc.timestamp.difference(_lastRecordTime!).inMilliseconds >=
                 intervalMs) {
+          debugPrint('RealGpsTrackNotifier | Adding point to state');
           state = [...state, loc];
           _lastRecordTime = loc.timestamp;
+        } else {
+          debugPrint('RealGpsTrackNotifier | Point ignored due to interval');
         }
       } // конец if
     });

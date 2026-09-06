@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.11] - 2026-09-06
+### Added
+- Added full diagnostic logging (debugPrint) across the entire geolocation data chain to trace the source of the emulator marker bug.
+- Added a 2-second timeout to `Geolocator.getLastKnownPosition()` to prevent the location stream from hanging indefinitely on Android emulators.
+
 ## [1.16.10] - 2026-09-06
 ### Fixed
 - Fixed internal GPS on Android emulators not receiving Mock Locations from Extended Controls by explicitly setting `forceLocationManager: true`.

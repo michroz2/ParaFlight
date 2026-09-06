@@ -159,7 +159,15 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   }
 
   try {
-    final lastPosition = await Geolocator.getLastKnownPosition();
+    debugPrint('realGpsProvider: calling getLastKnownPosition');
+    final lastPosition = await Geolocator.getLastKnownPosition().timeout(
+      const Duration(seconds: 2),
+      onTimeout: () {
+        debugPrint('realGpsProvider: getLastKnownPosition timed out');
+        return null;
+      },
+    );
+    debugPrint('realGpsProvider: getLastKnownPosition returned: $lastPosition');
     if (lastPosition != null) {
       yield LocationEntity(
         latitude: lastPosition.latitude,
@@ -170,14 +178,18 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
         timestamp: lastPosition.timestamp ?? DateTime.now(),
       );
     }
-  } catch (_) {
+  } catch (e) {
+    debugPrint('realGpsProvider: getLastKnownPosition threw: $e');
     // Игнорируем ошибку получения последней позиции
   }
 
+  debugPrint('realGpsProvider: starting getPositionStream');
   yield* Geolocator.getPositionStream(
     locationSettings: locationSettings,
-  ).map((Position position) {
-    debugPrint('RAW GPS POSITION: \${position.latitude}, \${position.longitude}, speed: \${position.speed}');
+  ).handleError((error) {
+    debugPrint('realGpsProvider: getPositionStream error: $error');
+  }).map((Position position) {
+    debugPrint('RAW GPS POSITION: ${position.latitude}, ${position.longitude}, speed: ${position.speed}');
     return LocationEntity(
       latitude: position.latitude,
       longitude: position.longitude,
@@ -189,12 +201,14 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   }); // конец map
 }); // конец realGpsProvider
 
-// locationProvider теперь возвращает AsyncValue, чтобы UI видел ошибки (например, если нет прав)
 final locationProvider = Provider<AsyncValue<LocationEntity?>>((ref) {
   final dataSource = ref.watch(dataSourceProvider);
+  debugPrint('locationProvider update | dataSource: $dataSource');
   
   if (dataSource == DataSource.internalGps) {
-    return ref.watch(realGpsProvider);
+    final gpsState = ref.watch(realGpsProvider);
+    debugPrint('locationProvider | internalGps state: $gpsState (hasValue: ${gpsState.hasValue}, isLoading: ${gpsState.isLoading})');
+    return gpsState;
   } else {
     final gpxState = ref.watch(gpxPointsProvider);
     if (gpxState.hasError) {
