@@ -123,11 +123,23 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     if (permission == LocationPermission.denied) {
       throw Exception('Разрешения на геолокацию отклонены.');
     }
-  } // конец if
+  } 
   
   if (permission == LocationPermission.deniedForever) {
     throw Exception('Разрешения на геолокацию отклонены навсегда.');
-  } // конец if
+  }
+
+  if (permission == LocationPermission.whileInUse) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Запрашиваем фоновые права для надежной работы при свернутом приложении.
+      // На Android 11+ это откроет настройки приложения, где нужно выбрать "Разрешить в любом режиме".
+      try {
+        permission = await Geolocator.requestPermission();
+      } catch (e) {
+        debugPrint('Ошибка запроса фоновых прав: $e');
+      }
+    }
+  }
 
   LocationSettings locationSettings;
   

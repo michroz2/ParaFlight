@@ -1,4 +1,4 @@
-﻿// Версия: 0.3.0 | Цель: Точка входа в приложение и инициализация глобальных сервисов
+// Версия: 0.3.0 | Цель: Точка входа в приложение и инициализация глобальных сервисов
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,8 @@ import 'core/preferences/preferences_provider.dart';
 import 'core/location/tracks_manager.dart';
 import 'features/settings/application/screen_settings_provider.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
+import 'core/location/flight_path_state.dart';
+import 'features/flight_detector/presentation/flight_detector_provider.dart';
 
 void main() async {
   // Гарантируем инициализацию Flutter-биндингов до асинхронных вызовов
@@ -42,6 +44,12 @@ class ParaFlightApp extends ConsumerWidget {
     // и применили свои _applyState() (Ориентация и Wakelock)
     ref.watch(wakelockProvider);
     ref.watch(orientationProvider);
+    
+    // Глобальные подписчики на ключевые трекинговые сервисы,
+    // чтобы они никогда не "засыпали" (не уходили в dormant state),
+    // даже если DashboardScreen размонтирован или приложение свернуто.
+    ref.listen(realGpsTrackProvider, (prev, next) {});
+    ref.listen(flightDetectorProvider, (prev, next) {});
 
     return const MaterialApp(
       title: 'ParaFlight',
