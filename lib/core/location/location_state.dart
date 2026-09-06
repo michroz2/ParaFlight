@@ -135,7 +135,7 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
     locationSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 0,
-      forceLocationManager: false,
+      forceLocationManager: true,
       intervalDuration: const Duration(seconds: 1),
       foregroundNotificationConfig: const ForegroundNotificationConfig(
         notificationText: "Запись трека и геоданных",
@@ -177,6 +177,7 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
   yield* Geolocator.getPositionStream(
     locationSettings: locationSettings,
   ).map((Position position) {
+    debugPrint('RAW GPS POSITION: \${position.latitude}, \${position.longitude}, speed: \${position.speed}');
     return LocationEntity(
       latitude: position.latitude,
       longitude: position.longitude,
