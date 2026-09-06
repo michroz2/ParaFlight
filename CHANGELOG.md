@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.15] - 2026-09-06
+### Fixed
+- Fixed build failure caused by `permission_handler` v13.0.2 requiring Android API 37 by downgrading to `permission_handler: ^11.3.1` which is compatible with the stable API 34.
+
 ## [1.16.14] - 2026-09-06
 ### Added
 - Added `permission_handler` package to explicitly request `POST_NOTIFICATIONS` and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` at startup. This prevents Android 13+ from silently killing the `Geolocator` Foreground Service by ensuring it has a visible sticky notification and is whitelisted from battery optimization.
