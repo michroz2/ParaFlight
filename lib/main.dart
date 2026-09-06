@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async'; // Для таймера
 
 import 'core/preferences/preferences_provider.dart';
 import 'core/location/tracks_manager.dart';
@@ -14,6 +15,11 @@ import 'features/flight_detector/presentation/flight_detector_provider.dart';
 void main() async {
   // Гарантируем инициализацию Flutter-биндингов до асинхронных вызовов
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // ДИАГНОСТИКА: Проверка, усыпляет ли система Dart-изолят в фоне
+  Timer.periodic(const Duration(seconds: 2), (timer) {
+    debugPrint('DIAGNOSTIC: Dart Isolate is ALIVE and ticking in background! Tick: ${timer.tick}');
+  });
   
   // Инициализация SharedPreferences до старта UI
   final sharedPreferences = await SharedPreferences.getInstance();

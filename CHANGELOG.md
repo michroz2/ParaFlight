@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.17] - 2026-09-06
+### Added
+- Added a diagnostic `Timer.periodic` in `main.dart` to determine if the Flutter Engine is suspending the Dart UI Isolate when the app goes into the background on Android.
+
 ## [1.16.16] - 2026-09-06
 ### Fixed
 - Hardened background tracking against Riverpod widget-tree lifecycle dormancy by moving `realGpsTrackProvider` and `flightDetectorProvider` listeners entirely outside of the Flutter widget tree. They are now attached directly to a standalone `ProviderContainer` in `main.dart`, guaranteeing they never pause even if the UI element tree is heavily suspended or reconstructed by the OS.
