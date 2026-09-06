@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Added adjustable sliders for Tank Capacity (0-30L) and Average Consumption (0-15L/h).
 - Added toggle for automatic EMA consumption correction.
 
+## [1.16.9] - 2026-09-06
+### Fixed
+- Added a hard limit of 15 L/h (and minimum of 1 L/h) for the dynamically calculated fuel consumption during manual remainder adjustments in the Fuel Dialog and Provider.
+
 ## [1.16.8] - 2026-09-06
 ### Fixed
 - Fixed build error caused by missing `FuelState` import in `dashboard_screen.dart`.

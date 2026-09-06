@@ -102,8 +102,10 @@ class FuelNotifier extends StateNotifier<FuelState> {
     if (shouldCorrect && remainder != state.remainder && state.lastFlightDurationHours > 0) {
       final realConsumption = state.averageConsumption + ((state.remainder - remainder) / state.lastFlightDurationHours);
       
-      // Защита от сумасшедших значений
-      if (realConsumption > 1.0 && realConsumption < 20.0) {
+      // Защита от сумасшедших значений и ограничение максимума в 15 л/ч
+      if (realConsumption > 15.0) {
+        newAvg = 15.0;
+      } else if (realConsumption >= 1.0) {
         newAvg = realConsumption;
       }
       

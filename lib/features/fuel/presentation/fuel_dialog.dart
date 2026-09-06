@@ -58,6 +58,11 @@ class _FuelDialogState extends ConsumerState<FuelDialog> {
     double dynamicConsumption = fuelState.averageConsumption;
     if (lastFlightDurationHours > 0 && remainder != initialRemainder) {
       dynamicConsumption = fuelState.averageConsumption + ((initialRemainder - remainder) / lastFlightDurationHours);
+      if (dynamicConsumption > 15.0) {
+        dynamicConsumption = 15.0;
+      } else if (dynamicConsumption < 1.0) {
+        dynamicConsumption = 1.0;
+      }
     }
 
     return SafeArea(
