@@ -22,6 +22,7 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
 import '../../fuel/application/fuel_provider.dart';
+import '../../fuel/domain/fuel_state.dart';
 import '../../fuel/presentation/fuel_dialog.dart';
 import 'widgets/instrument_block.dart';
 import 'widgets/wind_circle_painter.dart';
