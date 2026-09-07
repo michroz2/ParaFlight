@@ -59,6 +59,7 @@ class FlightDetectorPipeline {
     // Используем аппаратную скорость по умолчанию.
     // Вычисляем математическую, если это запрошено (useCalculatedSpeed) или если мы в режиме симулятора
     double calcSpeed = point.speed;
+    double calcHeading = point.heading;
     
     if (_lastLocation != null) {
       final distance = const latlong2.Distance();
@@ -67,13 +68,22 @@ class FlightDetectorPipeline {
     }
 
     if (useCalculatedSpeed && _buffer.isNotEmpty) {
-      // Сглаживание за последние ~3-5 точек
-      final historyIndex = _buffer.length > 4 ? _buffer.length - 4 : 0;
-      final prev = _buffer[historyIndex];
+      // Ищем точку примерно 4 секунды назад для сглаживания (а не 4 индекса, так как при даунсэмплинге 4 индекса могут быть 20 секундами!)
+      final targetTime = point.timestamp.subtract(const Duration(seconds: 4));
+      LocationEntity prev = _buffer.last;
+      for (int i = _buffer.length - 1; i >= 0; i--) {
+        prev = _buffer[i];
+        if (prev.timestamp.isBefore(targetTime) || prev.timestamp.isAtSameMomentAs(targetTime)) {
+          break; // Нашли точку >= 4 секунд назад
+        }
+      }
+
       final dist = const latlong2.Distance().as(latlong2.LengthUnit.Meter, latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(point.latitude, point.longitude));
       final ms = point.timestamp.difference(prev.timestamp).inMilliseconds;
       if (ms > 0) {
         calcSpeed = (dist / ms) * 1000.0;
+        calcHeading = const latlong2.Distance().bearing(latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(point.latitude, point.longitude));
+        if (calcHeading < 0) calcHeading += 360.0;
       }
     }
 
@@ -82,7 +92,7 @@ class FlightDetectorPipeline {
       longitude: point.longitude,
       altitude: point.altitude,
       speed: calcSpeed,
-      heading: point.heading,
+      heading: calcHeading,
       timestamp: point.timestamp,
     );
     
