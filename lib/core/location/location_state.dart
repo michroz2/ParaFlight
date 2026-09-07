@@ -116,14 +116,13 @@ final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>
   return DataSourceNotifier();
 });
 
-// Провайдер реального GPS через Geolocator
-// Вспомогательная переменная для единого прореживания данных на уровне провайдера
-DateTime? _globalLastRecordTime;
-
 // Провайдер реального GPS через Geolocator + FlutterForegroundTask
-final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
+final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* {
   bool serviceEnabled;
   LocationPermission permission;
+
+  // Локальный счетчик прореживания (сбрасывается при перезапуске GPS)
+  DateTime? lastRecordTime;
 
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
@@ -239,16 +238,19 @@ final realGpsProvider = StreamProvider<LocationEntity>((ref) async* {
         
         // ЕДИНЫЙ ЦЕНТР ПРОРЕЖИВАНИЯ (DOWNSAMPLING)
         // Проверяем, прошло ли достаточно времени с последней записи
-        if (_globalLastRecordTime == null ||
-            loc.timestamp.difference(_globalLastRecordTime!).inMilliseconds >= intervalMs) {
-          _globalLastRecordTime = loc.timestamp;
+        if (lastRecordTime == null ||
+            loc.timestamp.difference(lastRecordTime).inMilliseconds >= intervalMs) {
+          lastRecordTime = loc.timestamp;
 
           // Прямое обновление трека и детектора без Riverpod-батчинга
           // ОБА получают абсолютно одинаковый прореженный набор точек
           Future.microtask(() {
-            ref.read(realGpsTrackProvider.notifier).addPoint(loc);
-            final currentWind = ref.read(windProvider);
-            ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
+            final source = ref.read(dataSourceProvider);
+            if (source == DataSource.internalGps) {
+              ref.read(realGpsTrackProvider.notifier).addPoint(loc);
+              final currentWind = ref.read(windProvider);
+              ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
+            }
           });
           
           yield loc;
