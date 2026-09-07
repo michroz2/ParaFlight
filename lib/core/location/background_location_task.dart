@@ -18,10 +18,12 @@ class MyTaskHandler extends TaskHandler {
   StreamSubscription<Position>? _positionStream;
   DateTime? _lastSendTime;
   int _intervalMs = 1000;
+  SendPort? _sendPort;
 
   @override
   Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {
     debugPrint('BackgroundLocationTask | onStart');
+    _sendPort = sendPort;
     
     // Пытаемся получить интервал из сохраненных данных
     final customData = await FlutterForegroundTask.getData<String>(key: 'intervalMs');
@@ -59,8 +61,8 @@ class MyTaskHandler extends TaskHandler {
           'timestamp': position.timestamp.millisecondsSinceEpoch,
         };
         
-        // Отправляем сырые данные в главный изолят через ReceivePort
-        sendPort?.send(jsonEncode(map));
+        // Отправляем сырые данные в главный изолят через актуальный ReceivePort
+        _sendPort?.send(jsonEncode(map));
       }
     }, onError: (error) {
       debugPrint('BackgroundLocationTask | error: $error');
@@ -69,8 +71,10 @@ class MyTaskHandler extends TaskHandler {
 
   @override
   Future<void> onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
-    // В данном случае периодические события таймера нам не нужны, 
-    // вся логика реактивна (поток Geolocator).
+    // Обновляем sendPort на случай, если порт в UI был пересоздан без полного перезапуска изолята
+    if (sendPort != null) {
+      _sendPort = sendPort;
+    }
   }
 
   @override

@@ -211,7 +211,10 @@ final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* 
   // Сохраняем интервал для фонового изолята
   await FlutterForegroundTask.saveData(key: 'intervalMs', value: intervalMs.toString());
 
-  if (!await FlutterForegroundTask.isRunningService) {
+  if (await FlutterForegroundTask.isRunningService) {
+    debugPrint('realGpsProvider: Перезапуск Background Service (уже запущен)');
+    await FlutterForegroundTask.restartService();
+  } else {
     debugPrint('realGpsProvider: Запуск Background Service');
     await FlutterForegroundTask.startService(
       notificationTitle: 'ParaFlight',
@@ -222,7 +225,12 @@ final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* 
 
   // Слушаем порт от фонового изолята
   debugPrint('realGpsProvider: starting receivePort stream');
-  await for (final data in FlutterForegroundTask.receivePort!) {
+  final receivePort = FlutterForegroundTask.receivePort;
+  if (receivePort == null) {
+    throw Exception('Не удалось инициализировать порт связи с фоновым сервисом');
+  }
+
+  await for (final data in receivePort) {
     if (data is String) {
       try {
         final map = jsonDecode(data);
