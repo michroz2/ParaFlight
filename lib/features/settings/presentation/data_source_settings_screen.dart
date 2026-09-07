@@ -175,6 +175,17 @@ class DataSourceSettingsScreen extends ConsumerWidget {
               }
             },
           ),
+          if (currentSource == DataSource.internalGps)
+            SwitchListTile(
+              title: const Text('Данные эмулятора (Математические)'),
+              subtitle: const Text(
+                'Игнорировать нулевую скорость эмулятора и вычислять её по координатам (сглаженно). Включите при отладке в Android эмуляторе.',
+              ),
+              value: ref.watch(emulatorDataEnabledProvider),
+              onChanged: (value) {
+                ref.read(emulatorDataEnabledProvider.notifier).toggle(value);
+              },
+            ),
         ],
       ),
     );

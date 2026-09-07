@@ -44,7 +44,7 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
          _getCurrentIndex = getCurrentIndex,
         super(const FlightDetectorState());
 
-  void updateLocation(LocationEntity location, bool isSimulator, WindCalculationResult? currentWind) {
+  void updateLocation(LocationEntity location, bool isSimulator, WindCalculationResult? currentWind, {bool useCalculatedSpeed = false}) {
     bool isJump = false;
     
     if (isSimulator) {
@@ -72,7 +72,7 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
         
         if (allPoints.isNotEmpty && currentIndex >= 0 && currentIndex < allPoints.length) {
           for (int i = 0; i <= currentIndex; i++) {
-            _pipeline.processLocation(allPoints[i], currentWind: null); // При перемотке ветер не пересчитываем для CFV
+            _pipeline.processLocation(allPoints[i], currentWind: null, useCalculatedSpeed: true); // В симуляторе используем рассчитанную скорость
           }
         }
       }
@@ -84,7 +84,7 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
         currentDuration: _pipeline.currentDuration,
       );
     } else {
-      _pipeline.processLocation(location, currentWind: currentWind);
+      _pipeline.processLocation(location, currentWind: currentWind, useCalculatedSpeed: useCalculatedSpeed);
       state = FlightDetectorState(
         state: _pipeline.currentState,
         flights: List.of(_pipeline.flights),
@@ -125,6 +125,7 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
         location,
         true,
         currentWind,
+        useCalculatedSpeed: true, // В симуляторе всегда используем вычисленную
       );
     }
   });

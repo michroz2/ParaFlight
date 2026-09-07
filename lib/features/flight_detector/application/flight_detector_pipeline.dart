@@ -52,12 +52,12 @@ class FlightDetectorPipeline {
   DateTime? _lastValidWindTime;
   DateTime? _highwayStartTime;
 
-  void processLocation(LocationEntity point, {WindCalculationResult? currentWind}) {
+  void processLocation(LocationEntity point, {WindCalculationResult? currentWind, bool useCalculatedSpeed = false}) {
     double deltaDist = 0.0;
     Duration deltaT = Duration.zero;
     
-    // Унифицируем скорость и курс, чтобы пайплайн работал абсолютно одинаково 
-    // для любого источника (в т.ч. обходя баги Android Emulator, где speed = 0.0)
+    // Используем аппаратную скорость по умолчанию.
+    // Вычисляем математическую, если это запрошено (useCalculatedSpeed) или если мы в режиме симулятора
     double calcSpeed = point.speed;
     
     if (_lastLocation != null) {
@@ -66,7 +66,7 @@ class FlightDetectorPipeline {
       deltaT = point.timestamp.difference(_lastLocation!.timestamp);
     }
 
-    if (_buffer.isNotEmpty) {
+    if (useCalculatedSpeed && _buffer.isNotEmpty) {
       // Сглаживание за последние ~3-5 точек
       final historyIndex = _buffer.length > 4 ? _buffer.length - 4 : 0;
       final prev = _buffer[historyIndex];

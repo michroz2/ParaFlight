@@ -116,6 +116,22 @@ final dataSourceProvider = StateNotifierProvider<DataSourceNotifier, DataSource>
   return DataSourceNotifier();
 });
 
+// Провайдер для тоггла "Данные эмулятора"
+class EmulatorDataNotifier extends StateNotifier<bool> {
+  final Ref ref;
+  
+  EmulatorDataNotifier(this.ref) : super(ref.read(sharedPreferencesProvider).getBool('emulator_data_enabled') ?? false);
+
+  void toggle(bool value) {
+    state = value;
+    ref.read(sharedPreferencesProvider).setBool('emulator_data_enabled', value);
+  }
+}
+
+final emulatorDataEnabledProvider = StateNotifierProvider<EmulatorDataNotifier, bool>((ref) {
+  return EmulatorDataNotifier(ref);
+});
+
 // Провайдер реального GPS через Geolocator + FlutterForegroundTask
 final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* {
   bool serviceEnabled;
@@ -257,7 +273,8 @@ final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* 
             if (source == DataSource.internalGps) {
               ref.read(realGpsTrackProvider.notifier).addPoint(loc);
               final currentWind = ref.read(windProvider);
-              ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind);
+              final useMath = ref.read(emulatorDataEnabledProvider);
+              ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind, useCalculatedSpeed: useMath);
             }
           });
           
