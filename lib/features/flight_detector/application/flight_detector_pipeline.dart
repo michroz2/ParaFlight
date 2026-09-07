@@ -55,15 +55,41 @@ class FlightDetectorPipeline {
   void processLocation(LocationEntity point, {WindCalculationResult? currentWind}) {
     double deltaDist = 0.0;
     Duration deltaT = Duration.zero;
+    
+    // Унифицируем скорость и курс, чтобы пайплайн работал абсолютно одинаково 
+    // для любого источника (в т.ч. обходя баги Android Emulator, где speed = 0.0)
+    double calcSpeed = point.speed;
+    
     if (_lastLocation != null) {
       final distance = const latlong2.Distance();
       deltaDist = distance.as(latlong2.LengthUnit.Meter, latlong2.LatLng(_lastLocation!.latitude, _lastLocation!.longitude), latlong2.LatLng(point.latitude, point.longitude));
       deltaT = point.timestamp.difference(_lastLocation!.timestamp);
     }
+
+    if (_buffer.isNotEmpty) {
+      // Сглаживание за последние ~3-5 точек
+      final historyIndex = _buffer.length > 4 ? _buffer.length - 4 : 0;
+      final prev = _buffer[historyIndex];
+      final dist = const latlong2.Distance().as(latlong2.LengthUnit.Meter, latlong2.LatLng(prev.latitude, prev.longitude), latlong2.LatLng(point.latitude, point.longitude));
+      final ms = point.timestamp.difference(prev.timestamp).inMilliseconds;
+      if (ms > 0) {
+        calcSpeed = (dist / ms) * 1000.0;
+      }
+    }
+
+    final p = LocationEntity(
+      latitude: point.latitude,
+      longitude: point.longitude,
+      altitude: point.altitude,
+      speed: calcSpeed,
+      heading: point.heading,
+      timestamp: point.timestamp,
+    );
+    
     _totalTrackDistance += deltaDist;
     _totalTrackDuration += deltaT;
     
-    _buffer.add(point);
+    _buffer.add(p);
     
     if (_currentState == FlightState.inFlight && _flights.isNotEmpty) {
       _flights.last.distance += deltaDist;
@@ -93,7 +119,7 @@ class FlightDetectorPipeline {
         _checkLandingPattern();
       }
     } // конец if-else
-    _lastLocation = point;
+    _lastLocation = p;
   } // конец метода processLocation
 
   void _checkMidAirStartPattern(LocationEntity point) {
