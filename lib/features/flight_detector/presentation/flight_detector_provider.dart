@@ -34,6 +34,7 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
   final List<LocationEntity> Function() _getPoints;
   final int Function() _getCurrentIndex;
   DateTime? _lastTimestamp;
+  int? _lastIndex;
   
   FlightDetectorNotifier(
     this._pipeline, {
@@ -45,12 +46,20 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
 
   void updateLocation(LocationEntity location, bool isSimulator, WindCalculationResult? currentWind) {
     bool isJump = false;
-    if (_lastTimestamp != null) {
-      final diff = location.timestamp.difference(_lastTimestamp!).inMilliseconds;
-      if (diff < 0 || diff > 2000) {
+    
+    if (isSimulator) {
+      final currentIndex = _getCurrentIndex();
+      // Считаем скачком только изменение индекса больше чем на 1 (это происходит при ручной перемотке симулятора)
+      if (_lastIndex != null && (currentIndex - _lastIndex!).abs() > 1) {
         isJump = true;
       }
+      _lastIndex = currentIndex;
+    } else {
+      // Для реального GPS скачки во времени (прореживание, потеря сигнала) - это норма.
+      // Состояние State Machine никогда не должно сбрасываться из-за них.
+      isJump = false;
     }
+
     _lastTimestamp = location.timestamp;
 
     if (isJump) {
@@ -88,6 +97,7 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
   void clear() {
     _pipeline.reset();
     _lastTimestamp = null;
+    _lastIndex = null;
     state = const FlightDetectorState();
   } // конец метода clear
 } // конец класса FlightDetectorNotifier
