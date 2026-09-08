@@ -14,6 +14,15 @@ import 'wind_settings_screen.dart'; // Новое: импорт экрана в�
 import 'dashboard_settings_screen.dart'; // Новое: импорт экрана дашборда
 import '../../fuel/presentation/fuel_settings_screen.dart';
 
+// Новое: импорты для проверки сохранения трека при выходе
+import '../../../core/location/location_state.dart';
+import '../../../core/location/flight_path_state.dart'; // Новое: импорт для realGpsTrackProvider
+import '../../flight_detector/presentation/flight_detector_provider.dart';
+import '../../flight_detector/presentation/track_config_provider.dart';
+import '../../../core/location/gpx_writer.dart';
+import '../../../core/storage/local_storage_service.dart';
+import '../../dashboard/presentation/widgets/save_track_dialog.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -121,7 +130,41 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.exit_to_app, color: Colors.red),
             title: const Text('Выход', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             subtitle: const Text('Закрыть приложение'),
-            onTap: () {
+            onTap: () async {
+              // Изменение: добавляем проверку сохранения трека перед выходом
+              final currentSource = ref.read(dataSourceProvider);
+              if (currentSource == DataSource.internalGps) {
+                final rawPoints = ref.read(realGpsTrackProvider);
+                if (rawPoints.isNotEmpty) {
+                  final flightDetectorState = ref.read(flightDetectorProvider);
+                  final result = await showDialog<Map<String, dynamic>>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => SaveTrackDialog(
+                      flightCount: flightDetectorState.flights.length,
+                      totalPoints: rawPoints.length,
+                    ),
+                  );
+
+                  if (result == null || result['action'] == 'abort') {
+                    return; // Отменяем выход
+                  }
+
+                  if (result['action'] == 'save') {
+                    final config = ref.read(trackConfigProvider);
+                    await GpxWriter.saveTrack(
+                      rawPoints: rawPoints,
+                      flights: flightDetectorState.flights,
+                      cleanUpExtra: result['cleanUpExtra'],
+                      splitFlights: result['splitFlights'],
+                      cleanupExtraSec: config.gpsCleanupExtraSec,
+                      storageService: ref.read(localStorageProvider),
+                    );
+                  }
+                  // Если action == 'erase', просто продолжаем без сохранения
+                }
+              }
+
               SystemNavigator.pop();
             }, // конец onTap
           ), // конец ListTile
