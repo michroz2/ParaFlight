@@ -451,6 +451,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       },
       child: Scaffold(
         body: Stack(
+          fit: StackFit.expand,
           children: [
             // Изменение: смещение центра карты вниз
             Positioned(
