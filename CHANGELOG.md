@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.5] - 2026-09-08
+### Fixed
+- Исправлено перекрытие нижних панелей системными кнопками устройства в ландшафтном режиме на реальных устройствах Android. В ландшафте nav-bar перемещается вправо. Обёртка `SafeArea(bottom:true, left:true, right:true)` + `Padding(horizontal:16)` внутри корневого `Positioned(left:0, right:0)` для панели симулятора и панели управления картой.
+
 ## [1.18.4] - 2026-09-08
 ### Fixed
 - Исправлена установка приложения на Android 11 и ниже. Разрешение `FOREGROUND_SERVICE_LOCATION` появилось только в Android 14 (API 34). Его наличие в манифесте без ограничения версии блокировало установку на старых устройствах. Добавлен атрибут `android:minSdkVersion="34"`.

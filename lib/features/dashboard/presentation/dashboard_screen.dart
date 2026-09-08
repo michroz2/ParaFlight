@@ -924,137 +924,141 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             if (dataSource == DataSource.simulator)
               Positioned(
                 bottom: 10,
-                left: 16,
-                right: 16,
+                left: 0,    // Изменение: убираем жёсткий отступ — SafeArea учтёт боковые nav-bar в ландшафте
+                right: 0,   // Изменение: аналогично для правой стороны
                 child: SafeArea(
-                  bottom: true, top: false, left: false, right: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xDD333333),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white24, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            _userPreviewToggle = !isPreviewVisible;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white12,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Icon(
-                            Icons.gesture,
-                            color: isPreviewVisible ? Colors.purpleAccent : Colors.white54,
-                            size: 24,
-                          ),
-                        ),
+                  // Изменение: left/right=true чтобы SafeArea учитывала боковые nav-bar в ландшафте
+                  bottom: true, top: false, left: true, right: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      const SizedBox(width: 12),
-                      InkWell(
-                        onTap: () => playbackNotifier.togglePlay(),
-                        child: Icon(
-                          playbackState.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 32,
-                        ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xDD333333),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24, width: 1),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 2.0,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 6.0,
-                                ),
-                                overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 12.0,
-                                ),
+                      child: Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _userPreviewToggle = !isPreviewVisible;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white12,
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Slider(
-                                value: playbackState.progress,
-                                activeColor: Colors.blueAccent,
-                                inactiveColor: Colors.white24,
-                                onChanged: (value) =>
-                                    playbackNotifier.seek(value),
+                              child: Icon(
+                                Icons.gesture,
+                                color: isPreviewVisible ? Colors.purpleAccent : Colors.white54,
+                                size: 24,
                               ),
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          ),
+                          const SizedBox(width: 12),
+                          InkWell(
+                            onTap: () => playbackNotifier.togglePlay(),
+                            child: Icon(
+                              playbackState.isPlaying
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  _formatDuration(
-                                    playbackState.currentDuration,
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    trackHeight: 2.0,
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6.0,
+                                    ),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 12.0,
+                                    ),
                                   ),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
+                                  child: Slider(
+                                    value: playbackState.progress,
+                                    activeColor: Colors.blueAccent,
+                                    inactiveColor: Colors.white24,
+                                    onChanged: (value) =>
+                                        playbackNotifier.seek(value),
                                   ),
                                 ),
-                                Text(
-                                  _formatDuration(playbackState.totalDuration),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatDuration(
+                                        playbackState.currentDuration,
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatDuration(playbackState.totalDuration),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () {
-                          double nextSpeed = playbackState.speedFactor == 1.0
-                              ? 2.0
-                              : playbackState.speedFactor == 2.0
-                                  ? 5.0
-                                  : playbackState.speedFactor == 5.0
-                                      ? 10.0
-                                      : playbackState.speedFactor == 10.0
-                                          ? 20.0
-                                          : playbackState.speedFactor == 20.0
-                                              ? 60.0
-                                              : 1.0;
-                          playbackNotifier.setSpeed(nextSpeed);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 4,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.white12,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${playbackState.speedFactor.toInt()}x',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () {
+                              double nextSpeed = playbackState.speedFactor == 1.0
+                                  ? 2.0
+                                  : playbackState.speedFactor == 2.0
+                                      ? 5.0
+                                      : playbackState.speedFactor == 5.0
+                                          ? 10.0
+                                          : playbackState.speedFactor == 10.0
+                                              ? 20.0
+                                              : playbackState.speedFactor == 20.0
+                                                  ? 60.0
+                                                  : 1.0;
+                              playbackNotifier.setSpeed(nextSpeed);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white12,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${playbackState.speedFactor.toInt()}x',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
                 ),
               ),
 
@@ -1065,13 +1069,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               bottom: _showOverlays
                   ? (dataSource == DataSource.simulator ? 90 : 20)
                   : -100,
-              left: 16,
-              right: 16,
+              left: 0,    // Изменение: убираем жёсткий отступ — SafeArea сам учтёт боковые nav-bar
+              right: 0,   // Изменение: аналогично
               child: SafeArea(
-                bottom: true, top: false, left: false, right: false,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                // Изменение: добавляем left/right для корректной работы в ландшафтном режиме
+                bottom: true, top: false, left: true, right: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                   _buildControlButton(Icons.remove, () {
                     _mapController.move(
                       _mapController.camera.center,
@@ -1124,8 +1131,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     );
                     _resetUiTimer();
                   }),
-                ],
-              ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
