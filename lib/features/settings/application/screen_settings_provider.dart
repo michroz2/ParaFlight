@@ -1,4 +1,4 @@
-﻿// Версия: 0.1.0 | Цель: Провайдеры настроек экрана (Ориентация, Wakelock)
+// Версия: 0.2.0 | Цель: Провайдеры настроек экрана (Ориентация, Wakelock, Kiosk)
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,3 +70,20 @@ class OrientationNotifier extends StateNotifier<AppOrientation> {
 final orientationProvider = StateNotifierProvider<OrientationNotifier, AppOrientation>((ref) {
   return OrientationNotifier(ref);
 }); // конец orientationProvider
+
+// Новое: Провайдер режима Кокпита (Kiosk Mode)
+class CockpitModeNotifier extends StateNotifier<bool> {
+  final Ref ref;
+
+  CockpitModeNotifier(this.ref) : super(ref.read(sharedPreferencesProvider).getBool('cockpit_mode_enabled') ?? true); // Дефолт: true
+
+  void toggle(bool value) {
+    state = value;
+    ref.read(sharedPreferencesProvider).setBool('cockpit_mode_enabled', value);
+  } // конец метода toggle
+} // конец класса CockpitModeNotifier
+
+// Новое: Провайдер состояния тумблера Режима Кокпита
+final cockpitModeProvider = StateNotifierProvider<CockpitModeNotifier, bool>((ref) {
+  return CockpitModeNotifier(ref);
+}); // конец cockpitModeProvider

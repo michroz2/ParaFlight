@@ -11,6 +11,7 @@ import 'features/settings/application/screen_settings_provider.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'core/location/flight_path_state.dart';
 import 'features/flight_detector/presentation/flight_detector_provider.dart';
+import 'features/settings/application/cockpit_mode_controller.dart'; // Новое: импорт контроллера Кокпита
 
 void main() async {
   // Гарантируем инициализацию Flutter-биндингов до асинхронных вызовов
@@ -38,10 +39,12 @@ void main() async {
   // Форсированно запускаем трекинг и детектор вне дерева виджетов
   container.read(realGpsTrackProvider);
   container.read(flightDetectorProvider);
+  container.read(cockpitModeControllerProvider);
   
   // Вешаем слушателей прямо на контейнер, чтобы они никогда не засыпали
   container.listen(realGpsTrackProvider, (prev, next) {});
   container.listen(flightDetectorProvider, (prev, next) {});
+  container.listen(cockpitModeControllerProvider, (prev, next) {});
 
   runApp(
     UncontrolledProviderScope(

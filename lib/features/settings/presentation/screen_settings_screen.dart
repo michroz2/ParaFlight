@@ -1,4 +1,4 @@
-﻿// Версия: 0.1.0 | Цель: Экран настроек дисплея (Ориентация, Wakelock)
+// Версия: 0.2.0 | Цель: Экран настроек дисплея (Ориентация, Wakelock, Режим Кокпита)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +11,7 @@ class ScreenSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentOrientation = ref.watch(orientationProvider);
     final isWakelockEnabled = ref.watch(wakelockProvider);
+    final isCockpitModeEnabled = ref.watch(cockpitModeProvider); // Новое: читаем состояние тумблера
 
     return Scaffold(
       appBar: AppBar(
@@ -64,6 +65,24 @@ class ScreenSettingsScreen extends ConsumerWidget {
             value: isWakelockEnabled,
             onChanged: (val) {
               ref.read(wakelockProvider.notifier).toggle(val);
+            }, // конец onChanged
+          ),
+          const Divider(),
+          // Новое: Секция Безопасности
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(
+              'Безопасность',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue),
+            ),
+          ),
+          // Новое: Тумблер Режима Кокпита
+          SwitchListTile(
+            title: const Text('Режим Кокпита (Защита от случайного выхода)'),
+            subtitle: const Text('Блокирует системные жесты и кнопки. Работает только при Встроенном GPS'),
+            value: isCockpitModeEnabled,
+            onChanged: (val) {
+              ref.read(cockpitModeProvider.notifier).toggle(val);
             }, // конец onChanged
           ),
         ],
