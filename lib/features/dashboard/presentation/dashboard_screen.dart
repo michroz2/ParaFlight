@@ -10,6 +10,8 @@ import 'dart:math';
 
 import '../../../core/location/location_state.dart';
 import '../../../core/location/vertical_speed_provider.dart';
+import '../../../core/storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
+import '../../../core/location/playback_notifier.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
 import '../../../core/version_provider.dart';
@@ -405,6 +407,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 cleanUpExtra: result['cleanUpExtra'],
                 splitFlights: result['splitFlights'],
                 cleanupExtraSec: config.gpsCleanupExtraSec,
+                storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
               );
             }
           }

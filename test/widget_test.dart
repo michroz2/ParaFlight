@@ -7,17 +7,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:paraflight/main.dart';
 import 'dart:io';
 import 'package:paraflight/core/preferences/preferences_provider.dart';
-import 'package:paraflight/core/location/tracks_manager.dart';
+import 'package:paraflight/core/storage/local_storage_service.dart'; // Изменение: Импорт нового сервиса
 
-class MockTracksManager implements TracksManager {
+class MockLocalStorageService implements LocalStorageService {
   @override
-  Future<void> initialize(SharedPreferences prefs) async {}
+  Future<void> init() async {}
   @override
-  Future<Directory> getTracksDirectory() async => Directory('');
+  Future<List<File>> getGpxFiles() async => [];
   @override
-  Future<List<File>> getAvailableTracks() async => [];
+  Future<String> saveTrack(String fileName, String content) async => '';
   @override
-  Future<File?> importTrack() async => null;
+  Future<bool> fileExists(String fileName) async => false;
 }
 
 void main() {
@@ -27,19 +27,19 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'ParaFlight',
       packageName: 'com.example.paraflight',
-      version: '1.15.2',
+      version: '1.16.29',
       buildNumber: '1',
       buildSignature: '',
     );
 
-    final tracksManager = MockTracksManager();
+    final localStorageService = MockLocalStorageService(); // Изменение: мок
 
     // Build our app and trigger a frame.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          tracksManagerProvider.overrideWithValue(tracksManager),
+          localStorageProvider.overrideWithValue(localStorageService), // Изменение: провайдер
         ],
         child: const ParaFlightApp(),
       ),

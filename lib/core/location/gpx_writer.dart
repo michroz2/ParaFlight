@@ -1,19 +1,11 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-
 import 'location_entity.dart';
+import '../storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
 import '../../features/flight_detector/domain/flight_state.dart';
 
 class GpxWriter {
-  static Future<Directory> _getTracksDirectory() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final dir = Directory(p.join(appDir.path, 'tracks'));
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    return dir;
-  }
+  // Изменение: Убран метод _getTracksDirectory, теперь используем LocalStorageService
 
   static String _formatDate(DateTime time) {
     return "${time.year.toString().padLeft(4, '0')}${time.month.toString().padLeft(2, '0')}${time.day.toString().padLeft(2, '0')}-"
@@ -57,18 +49,18 @@ class GpxWriter {
     required bool cleanUpExtra,
     required bool splitFlights,
     required int cleanupExtraSec,
+    required LocalStorageService storageService, // Новое: Инжектируем сервис
   }) async {
     if (rawPoints.isEmpty) return [];
-
-    final dir = await _getTracksDirectory();
 
     if (flights.isEmpty) {
       final endTime = rawPoints.last.timestamp;
       final trackName = 'PF${_formatDate(endTime)}';
       final fileName = '$trackName.gpx';
-      final file = File(p.join(dir.path, fileName));
-      await file.writeAsString(_generateGpxString(rawPoints, trackName));
-      return [file.path];
+      
+      final content = _generateGpxString(rawPoints, trackName);
+      final savedPath = await storageService.saveTrack(fileName, content); // Изменение: делегирование сервису
+      return [savedPath];
     }
 
     if (!cleanUpExtra && !splitFlights) {
@@ -76,9 +68,10 @@ class GpxWriter {
       final endTime = lastFlight.finish?.timestamp ?? rawPoints.last.timestamp;
       final trackName = 'PF${_formatDate(endTime)}';
       final fileName = '$trackName.gpx';
-      final file = File(p.join(dir.path, fileName));
-      await file.writeAsString(_generateGpxString(rawPoints, trackName));
-      return [file.path];
+      
+      final content = _generateGpxString(rawPoints, trackName);
+      final savedPath = await storageService.saveTrack(fileName, content); // Изменение: делегирование сервису
+      return [savedPath];
     }
 
     List<String> savedFiles = [];
@@ -191,17 +184,18 @@ class GpxWriter {
 
       String trackName = 'PF${_formatDate(endTime)}';
       String fileName = '$trackName.gpx';
-      File file = File(p.join(dir.path, fileName));
+      
       int copyIdx = 1;
-      while (await file.exists()) {
+      // Изменение: проверка через сервис
+      while (await storageService.fileExists(fileName)) {
         trackName = 'PF${_formatDate(endTime)}_$copyIdx';
         fileName = '$trackName.gpx';
-        file = File(p.join(dir.path, fileName));
         copyIdx++;
       }
 
-      await file.writeAsString(_generateGpxString(segmentPoints, trackName));
-      savedFiles.add(file.path);
+      final content = _generateGpxString(segmentPoints, trackName);
+      final savedPath = await storageService.saveTrack(fileName, content); // Изменение: делегирование сервису
+      savedFiles.add(savedPath);
     }
 
     return savedFiles;

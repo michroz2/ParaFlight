@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async'; // Для таймера
 
 import 'core/preferences/preferences_provider.dart';
-import 'core/location/tracks_manager.dart';
+import 'core/storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
 import 'features/settings/application/screen_settings_provider.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'core/location/flight_path_state.dart';
@@ -24,14 +24,14 @@ void main() async {
   // Инициализация SharedPreferences до старта UI
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  // Инициализация TracksManager (копирование треков из ресурсов)
-  final tracksManager = TracksManager();
-  await tracksManager.initialize(sharedPreferences);
+  // Изменение: Инициализация LocalStorageService вместо TracksManager
+  final localStorage = LocalStorageService();
+  await localStorage.init();
 
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-      tracksManagerProvider.overrideWithValue(tracksManager),
+      localStorageProvider.overrideWithValue(localStorage), // Новое: провайдер хранилища
     ],
   );
 

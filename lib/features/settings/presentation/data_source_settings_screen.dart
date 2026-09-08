@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../core/location/location_state.dart';
-import '../../../core/location/tracks_manager.dart';
+import '../../../core/storage/local_storage_service.dart'; // Новое: импорт сервиса хранилища
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart';
@@ -16,9 +16,14 @@ import '../../dashboard/presentation/widgets/save_track_dialog.dart';
 class DataSourceSettingsScreen extends ConsumerWidget {
   const DataSourceSettingsScreen({super.key});
 
+  // Изменение: Переход на LocalStorageService и отказ от импорта
   void _showTrackPicker(BuildContext context, WidgetRef ref) async {
-    final manager = ref.read(tracksManagerProvider);
-    final tracks = await manager.getAvailableTracks();
+    final storageService = ref.read(localStorageProvider);
+    
+    // Инициализация (запрос прав и создание папки)
+    await storageService.init();
+    
+    final tracks = await storageService.getGpxFiles();
 
     if (!context.mounted) return;
 
@@ -36,19 +41,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.file_download),
-                  title: const Text('Импортировать новый файл .gpx'),
-                  onTap: () async {
-                    final imported = await manager.importTrack();
-                    if (imported != null) {
-                      ref
-                          .read(selectedGpxFileProvider.notifier)
-                          .setFile(imported.path);
-                      if (context.mounted) Navigator.pop(ctx);
-                    }
-                  },
-                ),
+                // Убрана логика импорта файла через системный пикер
                 const Divider(),
                 Expanded(
                   child: ListView.builder(
@@ -141,6 +134,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                         cleanUpExtra: result['cleanUpExtra'],
                         splitFlights: result['splitFlights'],
                         cleanupExtraSec: config.gpsCleanupExtraSec,
+                        storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
                       );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

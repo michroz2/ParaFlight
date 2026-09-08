@@ -1,4 +1,8 @@
-﻿# Changelog
+# Changelog
+
+## [1.16.30] - 2026-09-08 (Fix encoding)
+### Fixed
+- Исправлена кодировка русского текста в файле CHANGELOG.md.
 
 ## [1.3.1] - 2026-09-03 (GPX Simulator File Selection)
 ### Added
