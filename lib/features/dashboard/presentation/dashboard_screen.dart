@@ -1,4 +1,4 @@
-// Версия: 0.5.0 | Цель: Главный экран с линейными контролами и умным компасом ветра
+// Версия: 0.6.0 | Цель: Главный экран с линейными контролами и умным компасом ветра
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +23,7 @@ import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
+import '../../settings/application/screen_settings_provider.dart'; // Новое: Импорт настроек экрана для режима Кокпита
 import '../../fuel/application/fuel_provider.dart';
 import '../../fuel/domain/fuel_state.dart';
 import '../../fuel/presentation/fuel_dialog.dart';
@@ -297,6 +298,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ? asyncLocation.error.toString()
         : null;
     final dataSource = ref.watch(dataSourceProvider);
+    final isKioskActive = dataSource == DataSource.internalGps && ref.watch(cockpitModeProvider); // Новое: проверяем активен ли киоск
 
     final playbackState = ref.watch(playbackProvider);
     final isPreviewVisible = _userPreviewToggle ?? !playbackState.hasStarted;
@@ -686,6 +688,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
             ),
             SafeArea(
+              top: !isKioskActive, // Изменение: скрываем SafeArea в Режиме Кокпита
               child: Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: Stack(
@@ -1109,6 +1112,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 color: Colors.amber,
                 elevation: 4,
                 child: SafeArea(
+                  top: !isKioskActive, // Изменение: скрываем SafeArea в Режиме Кокпита
                   bottom: false,
                   child: SizedBox(
                     height: 60,
