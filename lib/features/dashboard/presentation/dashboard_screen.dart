@@ -406,7 +406,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
             if (result['action'] == 'save') {
               final config = ref.read(trackConfigProvider);
-              await GpxWriter.saveTrack(
+              final savedPaths = await GpxWriter.saveTrack( // Изменение: сохраняем результат
                 rawPoints: rawPoints,
                 flights: flightDetectorState.flights,
                 cleanUpExtra: result['cleanUpExtra'],
@@ -414,6 +414,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 cleanupExtraSec: config.gpsCleanupExtraSec,
                 storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
               );
+              
+              // Новое: показываем диалог после сохранения
+              if (context.mounted && savedPaths.isNotEmpty) {
+                final fileNames = savedPaths.map((p) => p.split(RegExp(r'[\\/]')).last).join(', ');
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Успешно'),
+                    content: Text('Трек $fileNames записан'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              }
             }
             // Если action == 'erase', просто продолжаем без сохранения
           }
