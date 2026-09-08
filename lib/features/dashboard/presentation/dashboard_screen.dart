@@ -850,8 +850,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ? (dataSource == DataSource.simulator ? 230 : 100)
                     : (dataSource == DataSource.simulator ? 140 : 20),
                 left: 16,
-                child: Card(
-                  color: Colors.white.withAlpha(220),
+                child: SafeArea(
+                  bottom: true, top: false, left: false, right: false,
+                  child: Card(
+                    color: Colors.white.withAlpha(220),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -917,14 +919,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                   ),
                 ),
+                ),
               ),
             if (dataSource == DataSource.simulator)
               Positioned(
                 bottom: 10,
                 left: 16,
                 right: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
+                child: SafeArea(
+                  bottom: true, top: false, left: false, right: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
@@ -1050,6 +1055,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ],
                   ),
                 ),
+                ),
               ),
 
             // Панель: Линейная панель управления (Linear Control Bar)
@@ -1061,9 +1067,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   : -100,
               left: 16,
               right: 16,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+              child: SafeArea(
+                bottom: true, top: false, left: false, right: false,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                   _buildControlButton(Icons.remove, () {
                     _mapController.move(
                       _mapController.camera.center,
@@ -1117,6 +1125,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     _resetUiTimer();
                   }),
                 ],
+              ),
               ),
             ),
 
