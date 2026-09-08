@@ -1,4 +1,4 @@
-// Версия: 0.6.0 | Цель: Главный экран с линейными контролами и умным компасом ветра
+// Версия: 0.7.0 | Цель: Главный экран с линейными контролами и умным компасом ветра
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -289,6 +289,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
 
     final screenSize = MediaQuery.of(context).size;
+
+    // Новое: Оффсет для смещения оптического центра карты вниз.
+    // Значение 0.2 означает, что карта удлиняется вниз на 20% высоты экрана.
+    // Это математически смещает её геометрический центр (и маркер самолета) на 10% вниз (на отметку 60% от верха экрана).
+    final double mapCenterOffsetPercent = 0.2;
+
     final track = ref.watch(flightPathProvider);
     final asyncLocation = ref.watch(locationProvider);
     final gpxStateAsync = ref.watch(gpxPointsProvider);
@@ -446,220 +452,228 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: Scaffold(
         body: Stack(
           children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: currentLocation != null
-                    ? LatLng(
-                        currentLocation.latitude,
-                        currentLocation.longitude,
-                      )
-                    : const LatLng(0, 0),
-                initialZoom: 13.0,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                ),
-                onTap: _onMapTap,
-                onMapReady: () {
-                  final loc = ref.read(locationProvider).valueOrNull;
-                  if (loc != null && _isTrackingPilot) {
-                    _mapController.move(
-                      LatLng(loc.latitude, loc.longitude),
-                      _mapController.camera.zoom,
-                    );
-                  }
-                },
-                onPositionChanged: (MapCamera camera, bool hasGesture) {
-                  if (hasGesture) {
-                    if (_isTrackingPilot)
-                      setState(() => _isTrackingPilot = false);
-                    if (!_isFreePanMode) {
-                      _autoReturnTimer?.cancel();
-                      _autoReturnTimer = Timer(
-                        Duration(seconds: mapSettings.mapAutoCenterSeconds),
-                        () {
-                          if (mounted) {
-                            setState(() => _isTrackingPilot = true);
-                            final loc = ref.read(locationProvider).valueOrNull;
-                            if (loc != null) {
-                              _animatedMapMove(
-                                LatLng(loc.latitude, loc.longitude),
-                                _mapController.camera.zoom,
-                              );
-                            }
-                          }
-                        },
+            // Изменение: смещение центра карты вниз
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: -screenSize.height * mapCenterOffsetPercent,
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: currentLocation != null
+                      ? LatLng(
+                          currentLocation.latitude,
+                          currentLocation.longitude,
+                        )
+                      : const LatLng(0, 0),
+                  initialZoom: 13.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                  ),
+                  onTap: _onMapTap,
+                  onMapReady: () {
+                    final loc = ref.read(locationProvider).valueOrNull;
+                    if (loc != null && _isTrackingPilot) {
+                      _mapController.move(
+                        LatLng(loc.latitude, loc.longitude),
+                        _mapController.camera.zoom,
                       );
                     }
-                  }
-                },
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.paraflight',
+                  },
+                  onPositionChanged: (MapCamera camera, bool hasGesture) {
+                    if (hasGesture) {
+                      if (_isTrackingPilot)
+                        setState(() => _isTrackingPilot = false);
+                      if (!_isFreePanMode) {
+                        _autoReturnTimer?.cancel();
+                        _autoReturnTimer = Timer(
+                          Duration(seconds: mapSettings.mapAutoCenterSeconds),
+                          () {
+                            if (mounted && !_isTrackingPilot) {
+                              setState(() => _isTrackingPilot = true);
+                              final loc = ref.read(locationProvider).valueOrNull;
+                              if (loc != null) {
+                                _mapController.move(
+                                  LatLng(loc.latitude, loc.longitude),
+                                  _mapController.camera.zoom,
+                                );
+                              }
+                            }
+                          },
+                        );
+                      }
+                    }
+                  },
                 ),
-                if (isPreviewVisible && gpxState != null && gpxState.points != null && dataSource == DataSource.simulator)
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: gpxState.points!.map((p) => LatLng(p.latitude, p.longitude)).toList(),
-                        color: Colors.purple,
-                        strokeWidth: 3.0,
-                      )
-                    ],
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.paraflight',
                   ),
-                if ((playbackState.hasStarted || dataSource == DataSource.internalGps) && track.isNotEmpty)
-                  PolylineLayer(
-                    polylines: track.map((segment) {
-                      return Polyline(
-                        points: segment.points,
-                        color: segment.isFlight ? Colors.blue : Colors.grey,
-                        strokeWidth: segment.isFlight ? 4.0 : 2.0,
-                      );
-                    }).toList(),
-                  ),
-                // Новое: слой маркеров для старта и финиша
-                if (playbackState.hasStarted || dataSource == DataSource.internalGps)
-                  Builder(
-                    builder: (context) {
-                      final detectorState = ref.watch(flightDetectorProvider);
-                      final markers = <Marker>[];
-                      final flights = detectorState.flights;
-                      for (int i = 0; i < flights.length; i++) {
-                        final flight = flights[i];
-                        // Маркер старта: первый полет 'S', остальные 'R'. Забытый старт в воздухе - 'O'
-                        final startChar = flight.isMidAirStart
-                            ? 'O'
-                            : (i == 0 ? 'S' : 'R');
-                        markers.add(
-                          Marker(
-                            point: LatLng(
-                              flight.start.latitude,
-                            flight.start.longitude,
-                          ),
+                  if (isPreviewVisible && gpxState != null && gpxState.points != null && dataSource == DataSource.simulator)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: gpxState.points!.map((p) => LatLng(p.latitude, p.longitude)).toList(),
+                          color: Colors.purple,
+                          strokeWidth: 3.0,
+                        )
+                      ],
+                    ),
+                  if ((playbackState.hasStarted || dataSource == DataSource.internalGps) && track.isNotEmpty)
+                    PolylineLayer(
+                      polylines: track.map((segment) {
+                        return Polyline(
+                          points: segment.points,
+                          color: segment.isFlight ? Colors.blue : Colors.grey,
+                          strokeWidth: segment.isFlight ? 4.0 : 2.0,
+                        );
+                      }).toList(),
+                    ),
+                  // Новое: слой маркеров для старта и финиша
+                  if (playbackState.hasStarted || dataSource == DataSource.internalGps)
+                    Builder(
+                      builder: (context) {
+                        final detectorState = ref.watch(flightDetectorProvider);
+                        final markers = <Marker>[];
+                        final flights = detectorState.flights;
+                        for (int i = 0; i < flights.length; i++) {
+                          final flight = flights[i];
+                          // Маркер старта: первый полет 'S', остальные 'R'. Забытый старт в воздухе - 'O'
+                          final startChar = flight.isMidAirStart
+                              ? 'O'
+                              : (i == 0 ? 'S' : 'R');
+                          markers.add(
+                            Marker(
+                              point: LatLng(
+                                flight.start.latitude,
+                                flight.start.longitude,
+                              ),
+                              width: 20,
+                              height: 20,
+                              alignment: Alignment.center,
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(200),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.blue, width: 2),
+                                ),
+                                child: Text(
+                                  startChar,
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+
+                          // Маркер финиша (если есть)
+                          if (flight.finish != null) {
+                            markers.add(
+                              Marker(
+                                point: LatLng(
+                                  flight.finish!.latitude,
+                                  flight.finish!.longitude,
+                                ),
+                                width: 20,
+                                height: 20,
+                                alignment: Alignment.center,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(200),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.blue,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'X',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        } // конец for
+                        if (markers.isEmpty) return const SizedBox.shrink();
+                        return MarkerLayer(markers: markers);
+                      },
+                    ),
+                  if (playbackState.hasStarted || dataSource == DataSource.internalGps)
+                    Builder(
+                      builder: (context) {
+                        final config = ref.watch(trackConfigProvider);
+                        if (!config.enableDebugMarkers) return const SizedBox.shrink();
+                        final logs = ref.watch(telemetryProvider);
+                      if (logs.isEmpty) return const SizedBox.shrink();
+                      final markers = logs.map((event) {
+                        return Marker(
+                          point: event.location,
                           width: 20,
                           height: 20,
                           alignment: Alignment.center,
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(200),
+                              color: Colors.red.withAlpha(200),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.blue, width: 2),
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                             child: Text(
-                              startChar,
+                              event.id.toString(),
                               style: const TextStyle(
-                                color: Colors.blue,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: 10,
                                 height: 1.0,
                               ),
                             ),
                           ),
-                        ),
-                      );
-
-                      // Маркер финиша (если есть)
-                      if (flight.finish != null) {
-                        markers.add(
-                          Marker(
-                            point: LatLng(
-                              flight.finish!.latitude,
-                              flight.finish!.longitude,
-                            ),
-                            width: 20,
-                            height: 20,
-                            alignment: Alignment.center,
-                            child: Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(200),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.blue,
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Text(
-                                'X',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                          ),
                         );
-                      }
-                    } // конец for
-                    if (markers.isEmpty) return const SizedBox.shrink();
-                    return MarkerLayer(markers: markers);
-                  },
-                ),
-                if (playbackState.hasStarted || dataSource == DataSource.internalGps)
-                  Builder(
-                    builder: (context) {
-                      final config = ref.watch(trackConfigProvider);
-                      if (!config.enableDebugMarkers) return const SizedBox.shrink();
-                      final logs = ref.watch(telemetryProvider);
-                    if (logs.isEmpty) return const SizedBox.shrink();
-                    final markers = logs.map((event) {
-                      return Marker(
-                        point: event.location,
-                        width: 20,
-                        height: 20,
-                        alignment: Alignment.center,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.red.withAlpha(200),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                      }).toList();
+                      return MarkerLayer(markers: markers);
+                    },
+                  ),
+                  if (currentLocation != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(
+                            currentLocation.latitude,
+                            currentLocation.longitude,
                           ),
-                          child: Text(
-                            event.id.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              height: 1.0,
+                          child: Transform.rotate(
+                            angle: currentLocation.heading * pi / 180.0,
+                            child: const Icon(
+                              Icons.flight,
+                              color: Colors.red,
+                              size: 32,
                             ),
                           ),
                         ),
-                      );
-                    }).toList();
-                    return MarkerLayer(markers: markers);
-                  },
-                ),
-                if (currentLocation != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: LatLng(
-                          currentLocation.latitude,
-                          currentLocation.longitude,
-                        ),
-                        child: Transform.rotate(
-                          angle: currentLocation.heading * pi / 180.0,
-                          child: const Icon(
-                            Icons.flight,
-                            color: Colors.red,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+                      ],
+                    ),
+                ],
+              ),
             ),
 
-            // Фиксированный по центру экранный круг ветра
+            // Фиксированный по центру экранный круг ветра (смещенный вместе с картой)
             IgnorePointer(
-              child: Center(
+              child: Align(
+                alignment: Alignment(0.0, mapCenterOffsetPercent), // Изменение: смещение центра компаса вниз
                 child: SizedBox(
                   width: windCircleDiameter + 150,
                   height: windCircleDiameter + 150,
