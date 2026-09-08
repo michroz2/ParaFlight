@@ -672,13 +672,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
             // Фиксированный по центру экранный круг ветра (смещенный вместе с картой)
             IgnorePointer(
-              child: Align(
-                alignment: Alignment(0.0, mapCenterOffsetPercent), // Изменение: смещение центра компаса вниз
-                child: SizedBox(
-                  width: windCircleDiameter + 150,
-                  height: windCircleDiameter + 150,
-                  child: CustomPaint(
-                    painter: WindCirclePainter(
+              child: Center(
+                child: Transform.translate(
+                  // Смещение центра круга в пикселях: так как карта увеличена на mapCenterOffsetPercent (20%),
+                  // её оптический центр сместился ровно на половину этого значения (10%).
+                  offset: Offset(0, screenSize.height * (mapCenterOffsetPercent / 2)),
+                  child: SizedBox(
+                    width: windCircleDiameter + 150,
+                    height: windCircleDiameter + 150,
+                    child: CustomPaint(
+                      painter: WindCirclePainter(
                       windDirection:
                           ref.watch(flightDetectorProvider).state ==
                               FlightState.inFlight
@@ -701,7 +704,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
               ),
             ),
-            SafeArea(
+          ),
+          SafeArea(
               top: !isKioskActive, // Изменение: скрываем SafeArea в Режиме Кокпита
               child: Padding(
                 padding: const EdgeInsets.all(4.0),
