@@ -399,7 +399,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
             );
 
-            if (result != null) {
+            // Изменение: обработка различных действий
+            if (result == null || result['action'] == 'abort') {
+              return false; // Отменяем выход из приложения
+            }
+
+            if (result['action'] == 'save') {
               final config = ref.read(trackConfigProvider);
               await GpxWriter.saveTrack(
                 rawPoints: rawPoints,
@@ -410,6 +415,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
               );
             }
+            // Если action == 'erase', просто продолжаем без сохранения
           }
         }
 

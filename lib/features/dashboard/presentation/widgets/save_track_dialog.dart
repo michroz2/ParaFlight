@@ -28,13 +28,17 @@ class _SaveTrackDialogState extends State<SaveTrackDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Отмена'),
+            onPressed: () => Navigator.of(context).pop({'action': 'abort'}), // Изменение: отмена действия
+            child: const Text('Вернуться'), // Новое: кнопка возврата
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop({'action': 'erase'}), // Изменение: стирание
+            child: const Text('Стереть'), // Изменение: переименована кнопка
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(
               context,
-            ).pop({'cleanUpExtra': false, 'splitFlights': false}),
+            ).pop({'action': 'save', 'cleanUpExtra': false, 'splitFlights': false}), // Изменение: добавлено 'action': 'save'
             child: const Text('Записать'),
           ),
         ],
@@ -79,12 +83,17 @@ class _SaveTrackDialogState extends State<SaveTrackDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Отмена'),
+          onPressed: () => Navigator.of(context).pop({'action': 'abort'}), // Изменение: отмена действия
+          child: const Text('Вернуться'), // Новое: кнопка возврата
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop({'action': 'erase'}), // Изменение: стирание
+          child: const Text('Стереть'), // Изменение: переименована кнопка
         ),
         ElevatedButton(
           onPressed: () {
             Navigator.of(context).pop({
+              'action': 'save', // Изменение: добавлено 'action': 'save'
               'cleanUpExtra': _cleanUpExtra,
               'splitFlights':
                   _cleanUpExtra ||

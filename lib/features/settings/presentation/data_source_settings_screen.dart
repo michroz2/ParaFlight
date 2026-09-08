@@ -126,7 +126,12 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                       ),
                     );
 
-                    if (result != null) {
+                    // Изменение: обработка различных действий
+                    if (result == null || result['action'] == 'abort') {
+                      return; // Отменяем смену источника
+                    }
+
+                    if (result['action'] == 'save') {
                       final config = ref.read(trackConfigProvider);
                       await GpxWriter.saveTrack(
                         rawPoints: rawPoints,
@@ -144,6 +149,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                         );
                       }
                     }
+                    // Если action == 'erase', просто продолжаем без сохранения
                   }
                 }
 
