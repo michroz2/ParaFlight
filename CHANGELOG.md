@@ -2,8 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.9] - 2026-09-09
+### Refactor
+- Нижняя панель симулятора вынесена в изолированный виджет 'SimulatorControlBar'.
+- Верхняя панель телеметрии вынесена в изолированный виджет 'TopTelemetryBar'.
+- Интерактивные кнопки вынесены в изолированный виджет 'InteractiveControls'.
+
 ## [1.18.8] - 2026-09-09
+### Fixed Унификация потоков геолокации и фикс детектора полета (устранение Race Condition)
+- Устранен архитектурный дефект в realGpsProvider: удален "черный ход" (асинхронный впрыск через Future.microtask), вызывавший рассинхронизацию модулей.
+- flightDetectorProvider (State Machine) и RealGpsTrackNotifier переведены на строгое прослушивание единого источника правды — locationProvider.
+- Восстановлена корректная работа паттернов взлета, посадки и расстановки маркеров для режима Встроенного GPS.
 ### Fixed / Refactor
+- Устранены все issues flutter analyze (20 штук)
+- Устранены критические угрозы падения (use_build_context_synchronously) в диалогах dashboard_screen и data_source_settings_screen.
+- Зачищен мертвый код и исправлены null-aware выражения в логике геолокации.
 - `location_state.dart`: удалён мёртвый код (`?? DateTime.now()` для non-nullable `timestamp`)
 - `flight_detector_provider.dart`: удалено неиспользуемое поле `_lastTimestamp` и все его присвоения
 - `dashboard_screen.dart`: добавлены недостающие `mounted`-проверки перед `_showFuelDialog` и `showDialog` в `Future.microtask`

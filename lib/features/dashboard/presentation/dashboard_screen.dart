@@ -1,7 +1,7 @@
 // =============================================================================
 // Файл:    dashboard_screen.dart
 // Проект:  ParaFlight
-// Версия:  0.7.0
+// Версия:  1.18.9
 // Цель:    Главный экран с линейными контролами и умным компасом ветра
 // Изменения:
 //   0.7.0 - Добавлены линейные контролы и умный компас ветра
@@ -12,10 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'dart:async';
-import 'dart:math';
 
 import '../../../core/location/location_state.dart';
-import '../../../core/location/vertical_speed_provider.dart';
 import '../../../core/storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
@@ -32,9 +30,11 @@ import '../../settings/application/screen_settings_provider.dart'; // Новое
 import '../../fuel/application/fuel_provider.dart';
 import '../../fuel/domain/fuel_state.dart';
 import '../../fuel/presentation/fuel_dialog.dart';
-import 'widgets/instrument_block.dart';
-import 'widgets/wind_circle_painter.dart';
 import 'widgets/save_track_dialog.dart';
+import 'widgets/wind_compass_overlay.dart';
+import 'widgets/top_telemetry_bar.dart';
+import 'widgets/simulator_control_bar.dart';
+
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -69,8 +69,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       final config = ref.read(trackConfigProvider);
       final fuelState = ref.read(fuelProvider);
       
-      if (fuelState.enableFuelTracking && flightState == FlightState.groundMovement && (loc == null || loc.speed <= config.maxWalkSpeedMs)) {
+     if (fuelState.enableFuelTracking && flightState == FlightState.groundMovement && (loc == null || loc.speed <= config.maxWalkSpeedMs)) {
         if (!context.mounted) return; // Повторная проверка непосредственно перед использованием context
+        // ignore: use_build_context_synchronously
         _showFuelDialog(context);
       }
     });
@@ -306,65 +307,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final gpxStateAsync = ref.watch(gpxPointsProvider);
     final gpxState = gpxStateAsync.valueOrNull;
     final currentLocation = asyncLocation.valueOrNull;
-    final locationError = asyncLocation.hasError
-        ? asyncLocation.error.toString()
-        : null;
     final dataSource = ref.watch(dataSourceProvider);
     final isKioskActive = dataSource == DataSource.internalGps && ref.watch(cockpitModeProvider); // Новое: проверяем активен ли киоск
 
     final playbackState = ref.watch(playbackProvider);
     final isPreviewVisible = _userPreviewToggle ?? !playbackState.hasStarted;
-    final playbackNotifier = ref.read(playbackProvider.notifier);
 
     final wind = ref.watch(windProvider);
     final windConfig = ref.watch(windConfigProvider);
-
-    // Радарная математика (расчет метров на пиксель)
-    final standardRadii = <double>[
-      10,
-      25,
-      50,
-      100,
-      250,
-      500,
-      1000,
-      2000,
-      5000,
-      10000,
-      25000,
-      50000,
-    ];
-    final earthCircumference = 40075016.686;
-    final lat = currentLocation?.latitude ?? 0.0;
-
-    // Безопасное получение zoom
-    double currentZoom = 13.0;
-    try {
-      currentZoom = _mapController.camera.zoom;
-    } catch (_) {}
-
-    final metersPerPixel =
-        (earthCircumference * cos(lat * pi / 180.0)) /
-        (256.0 * pow(2, currentZoom));
-
-    final targetPixelRadius = min(screenSize.width, screenSize.height) / 4.0;
-    final targetMeters = targetPixelRadius * metersPerPixel;
-
-    double bestRadiusMeters = standardRadii.first;
-    double minDiff = double.infinity;
-    for (var r in standardRadii) {
-      final diff = (r - targetMeters).abs();
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestRadiusMeters = r;
-      }
-    }
-
-    final actualPixelRadius = bestRadiusMeters / metersPerPixel;
-    final windCircleDiameter = actualPixelRadius * 2;
-    String scaleText = bestRadiusMeters >= 1000
-        ? '${(bestRadiusMeters / 1000).toStringAsFixed(bestRadiusMeters % 1000 == 0 ? 0 : 1)} km'
-        : '${bestRadiusMeters.toStringAsFixed(0)} m';
 
     ref.listen(playbackProvider, (previous, next) {
       if (previous?.hasStarted == true && next.hasStarted == false) {
@@ -682,175 +632,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
             ),
 
-            // Фиксированный по центру экранный круг ветра (смещенный вместе с картой)
-            IgnorePointer(
-              child: Center(
-                child: Transform.translate(
-                  // Смещение центра круга в пикселях: так как карта увеличена на mapCenterOffsetPercent (20%),
-                  // её оптический центр сместился ровно на половину этого значения (10%).
-                  offset: Offset(0, screenSize.height * (mapCenterOffsetPercent / 2)),
-                  child: SizedBox(
-                    width: windCircleDiameter + 150,
-                    height: windCircleDiameter + 150,
-                    child: CustomPaint(
-                      painter: WindCirclePainter(
-                      windDirection:
-                          ref.watch(flightDetectorProvider).state ==
-                              FlightState.inFlight
-                          ? wind?.windDirection
-                          : null,
-                      windSpeed:
-                          ref.watch(flightDetectorProvider).state ==
-                              FlightState.inFlight
-                          ? wind?.windSpeed
-                          : null,
-                      mapRotation: _rotationMode == MapRotationMode.heading
-                          ? (currentLocation?.heading ?? 0.0)
-                          : 0.0,
-                      diameter: windCircleDiameter,
-                      scaleText: scaleText,
-                      showNorthPointer:
-                          _rotationMode == MapRotationMode.heading,
-                    ),
-                  ),
-                ),
+            // Изменение: Вынесенный виджет круга ветра
+            WindCompassOverlay(
+              mapController: _mapController,
+              mapCenterOffsetPercent: mapCenterOffsetPercent,
+            ),  
+
+            SafeArea(
+                top: !isKioskActive,
+              child: TopTelemetryBar(
+                onFuelTap: () => _showFuelDialog(context),
               ),
             ),
-          ),
-          SafeArea(
-              top: !isKioskActive, // Изменение: скрываем SafeArea в Режиме Кокпита
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          InstrumentBlock(
-                            title: 'SOG',
-                            unit: 'km/h',
-                            value: currentLocation != null
-                                ? (currentLocation.speed * 3.6).toStringAsFixed(1)
-                                : '--.-',
-                          ),
-                          InstrumentBlock(
-                            title: 'FLT',
-                            unit: 'time',
-                            value: ref.watch(flightDetectorProvider).currentDuration.inHours > 0 
-                                ? '${ref.watch(flightDetectorProvider).currentDuration.inHours}:${(ref.watch(flightDetectorProvider).currentDuration.inMinutes % 60).toString().padLeft(2, '0')}'
-                                : '${(ref.watch(flightDetectorProvider).currentDuration.inMinutes).toString().padLeft(2, '0')}:${(ref.watch(flightDetectorProvider).currentDuration.inSeconds % 60).toString().padLeft(2, '0')}',
-                          ),
-                          InstrumentBlock(
-                            title: 'DIST',
-                            unit: 'km',
-                            value: (ref.watch(flightDetectorProvider).currentDistance / 1000.0).toStringAsFixed(1),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          InstrumentBlock(
-                            title: 'ALT',
-                            unit: 'm',
-                            value: currentLocation != null
-                                ? currentLocation.altitude.toStringAsFixed(0)
-                                : '---',
-                          ),
-                          Builder(
-                            builder: (context) {
-                              final vz = ref.watch(verticalSpeedProvider);
-                              final sign = vz > 0 ? '+' : '';
-                              return InstrumentBlock(
-                                title: 'Vz',
-                                unit: 'm/s',
-                                value: currentLocation != null ? '$sign${vz.toStringAsFixed(1)}' : '---',
-                              );
-                            }
-                          ),
-                          if (ref.watch(fuelProvider).enableFuelTracking)
-                            InstrumentBlock(
-                              title: 'FUEL',
-                              unit: 'L',
-                              value: ref.watch(fuelProvider).remainder.toStringAsFixed(1),
-                              onTap: () => _showFuelDialog(context),
-                              isFlashing: ref.watch(fuelProvider).remainder <= ref.watch(fuelProvider).jokerRemainder,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          InstrumentBlock(
-                            title: 'BRG',
-                            unit: '°',
-                            value: currentLocation != null
-                                ? currentLocation.heading.toStringAsFixed(0)
-                                : '---',
-                          ),
-                          if (locationError != null)
-                            Container(
-                              margin: const EdgeInsets.only(top: 8),
-                              padding: const EdgeInsets.all(8),
-                              color: Colors.red.withAlpha(200),
-                              child: Text(
-                                'Ошибка: $locationError',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          if ((gpxState == null || !gpxState.isDone) &&
-                              dataSource == DataSource.simulator)
-                            Container(
-                              margin: const EdgeInsets.only(top: 8),
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withAlpha(150),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Stack(
-                                children: [
-                                  FractionallySizedBox(
-                                    alignment: Alignment.centerLeft,
-                                    widthFactor: gpxState?.progress ?? 0.0,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withAlpha(200),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                  Center(
-                                    child: Text(
-                                      'Загрузка трека... ${((gpxState?.progress ?? 0.0) * 100).toStringAsFixed(0)}%',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            
             if (windConfig.enableWindOverlay && 
                 wind != null &&
                 ref.watch(flightDetectorProvider).state == FlightState.inFlight)
@@ -932,147 +726,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
                 ),
               ),
-            if (dataSource == DataSource.simulator)
+           if (dataSource == DataSource.simulator)
               Positioned(
                 bottom: 10,
-                left: 0,    // Изменение: убираем жёсткий отступ — SafeArea учтёт боковые nav-bar в ландшафте
-                right: 0,   // Изменение: аналогично для правой стороны
-                child: SafeArea(
-                  // Изменение: left/right=true чтобы SafeArea учитывала боковые nav-bar в ландшафте
-                  bottom: true, top: false, left: true, right: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xDD333333),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white24, width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _userPreviewToggle = !isPreviewVisible;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white12,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                Icons.gesture,
-                                color: isPreviewVisible ? Colors.purpleAccent : Colors.white54,
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          InkWell(
-                            onTap: () => playbackNotifier.togglePlay(),
-                            child: Icon(
-                              playbackState.isPlaying
-                                  ? Icons.pause
-                                  : Icons.play_arrow,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    trackHeight: 2.0,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 6.0,
-                                    ),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 12.0,
-                                    ),
-                                  ),
-                                  child: Slider(
-                                    value: playbackState.progress,
-                                    activeColor: Colors.blueAccent,
-                                    inactiveColor: Colors.white24,
-                                    onChanged: (value) =>
-                                        playbackNotifier.seek(value),
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _formatDuration(
-                                        playbackState.currentDuration,
-                                      ),
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                    Text(
-                                      _formatDuration(playbackState.totalDuration),
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () {
-                              double nextSpeed = playbackState.speedFactor == 1.0
-                                  ? 2.0
-                                  : playbackState.speedFactor == 2.0
-                                      ? 5.0
-                                      : playbackState.speedFactor == 5.0
-                                          ? 10.0
-                                          : playbackState.speedFactor == 10.0
-                                              ? 20.0
-                                              : playbackState.speedFactor == 20.0
-                                                  ? 60.0
-                                                  : 1.0;
-                              playbackNotifier.setSpeed(nextSpeed);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white12,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${playbackState.speedFactor.toInt()}x',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                left: 0,
+                right: 0,
+                // Изменение: Вынесенный виджет панели симулятора
+                child: SimulatorControlBar(
+                  isPreviewVisible: isPreviewVisible,
+                  onTogglePreview: () {
+                    setState(() {
+                      _userPreviewToggle = !isPreviewVisible;
+                    });
+                  },
                 ),
               ),
-
             // Панель: Линейная панель управления (Linear Control Bar)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -1230,14 +898,4 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ),
     );
   }
-}
-
-String _formatDuration(Duration duration) {
-  String twoDigits(int n) => n.toString().padLeft(2, "0");
-  String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-  String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-  if (duration.inHours > 0) {
-    return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
-  }
-  return "$twoDigitMinutes:$twoDigitSeconds";
 }
