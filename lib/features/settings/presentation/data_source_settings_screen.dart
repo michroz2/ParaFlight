@@ -1,10 +1,10 @@
 // =============================================================================
 // Файл:    data_source_settings_screen.dart
 // Проект:  ParaFlight
-// Версия:  0.6.1
+// Версия:  0.6.2
 // Цель:    Экран выбора источника данных (GPS/Симулятор)
 // Изменения:
-//   0.6.1 - Добавлен импорт сервиса хранилища, обновлён список треков
+//   0.6.2 - В диалоге выбора трека добавлено отображение размера файла (Б/КБ/МБ)
 // =============================================================================
 
 import 'dart:io';
@@ -56,9 +56,28 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final file = tracks[index];
                       final name = path.basename(file.path);
+                      // Форматирование размера файла: Б / КБ / МБ
+                      final sizeBytes = file.lengthSync();
+                      final String sizeLabel;
+                      if (sizeBytes < 1024) {
+                        sizeLabel = '$sizeBytes Б';
+                      } else if (sizeBytes < 1024 * 1024) {
+                        final kb = (sizeBytes / 1024).toStringAsFixed(1);
+                        sizeLabel = '$kb КБ';
+                      } else {
+                        final mb = (sizeBytes / (1024 * 1024)).toStringAsFixed(2);
+                        sizeLabel = '$mb МБ';
+                      }
                       return ListTile(
                         leading: const Icon(Icons.map),
                         title: Text(name),
+                        subtitle: Text(
+                          sizeLabel,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                         onTap: () {
                           ref
                               .read(selectedGpxFileProvider.notifier)
