@@ -56,7 +56,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool? _userPreviewToggle;
   Timer? _autoReturnTimer;
 
-  // Переменная для настройки скорости возврата (в миллисекундах)
+  // Переменная для настройки скорости возврата карты на маркер самолёта (в миллисекундах)
   final int _mapReturnAnimationMs = 1000;
 
   @override
@@ -456,7 +456,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               setState(() => _isTrackingPilot = true);
                               final loc = ref.read(locationProvider).valueOrNull;
                               if (loc != null) {
-                                _mapController.move(
+                                _animatedMapMove(
                                   LatLng(loc.latitude, loc.longitude),
                                   _mapController.camera.zoom,
                                 );
