@@ -8,7 +8,6 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -18,7 +17,6 @@ import 'dart:math';
 import '../../../core/location/location_state.dart';
 import '../../../core/location/vertical_speed_provider.dart';
 import '../../../core/storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
-import '../../../core/location/playback_notifier.dart';
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
 import '../../../core/version_provider.dart';
@@ -65,13 +63,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
+      if (!context.mounted) return;
       final flightState = ref.read(flightDetectorProvider).state;
       final loc = ref.read(locationProvider).valueOrNull;
       final config = ref.read(trackConfigProvider);
       final fuelState = ref.read(fuelProvider);
       
       if (fuelState.enableFuelTracking && flightState == FlightState.groundMovement && (loc == null || loc.speed <= config.maxWalkSpeedMs)) {
+        if (!context.mounted) return; // Повторная проверка непосредственно перед использованием context
         _showFuelDialog(context);
       }
     });
@@ -207,8 +206,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 child: Consumer(
                   builder: (context, ref, child) {
                     final logs = ref.watch(telemetryProvider);
-                    if (logs.isEmpty)
+                    if (logs.isEmpty) {
                       return const Center(child: Text('No logs'));
+                    }
                     return ListView.builder(
                       itemCount: logs.length,
                       itemBuilder: (context, index) {
@@ -247,6 +247,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         // Показываем предупреждение и помечаем
         Future.microtask(() {
           ref.read(fuelProvider.notifier).markJokerWarningShown();
+          if (!context.mounted) return; // Проверка: контекст всё ещё валиден
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -291,9 +292,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     });
 
     final mapSettings = ref.watch(mapSettingsProvider);
-    if (_rotationMode == null) {
-      _rotationMode = mapSettings.defaultRotationMode;
-    }
+    _rotationMode ??= mapSettings.defaultRotationMode;
 
     final screenSize = MediaQuery.of(context).size;
 
@@ -398,14 +397,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       }
     });
 
-    return WillPopScope(
-      onWillPop: () async {
+    // Изменение: WillPopScope заменён на PopScope (WillPopScope устарел с v3.12.0)
+    return PopScope(
+      canPop: false, // Всегда перехватываем — сами управляем выходом
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Уже закрылось — ничего не делаем
         final currentSource = ref.read(dataSourceProvider);
         if (currentSource == DataSource.internalGps) {
           final rawPoints = ref.read(realGpsTrackProvider);
           if (rawPoints.isNotEmpty) {
             final flightDetectorState = ref.read(flightDetectorProvider);
-            final result = await showDialog<Map<String, dynamic>>(
+            if (!context.mounted) return;
+            final dialogResult = await showDialog<Map<String, dynamic>>(
               context: context,
               barrierDismissible: false,
               builder: (ctx) => SaveTrackDialog(
@@ -415,21 +418,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             );
 
             // Изменение: обработка различных действий
-            if (result == null || result['action'] == 'abort') {
-              return false; // Отменяем выход из приложения
+            if (dialogResult == null || dialogResult['action'] == 'abort') {
+              return; // Отменяем выход — не вызываем pop
             }
 
-            if (result['action'] == 'save') {
+            if (dialogResult['action'] == 'save') {
               final config = ref.read(trackConfigProvider);
               final savedPaths = await GpxWriter.saveTrack( // Изменение: сохраняем результат
                 rawPoints: rawPoints,
                 flights: flightDetectorState.flights,
-                cleanUpExtra: result['cleanUpExtra'],
-                splitFlights: result['splitFlights'],
+                cleanUpExtra: dialogResult['cleanUpExtra'],
+                splitFlights: dialogResult['splitFlights'],
                 cleanupExtraSec: config.gpsCleanupExtraSec,
                 storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
               );
-              
+
               // Новое: показываем диалог после сохранения
               if (context.mounted && savedPaths.isNotEmpty) {
                 final fileNames = savedPaths.map((p) => p.split(RegExp(r'[\\/]')).last).join(', ');
@@ -454,7 +457,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         }
 
         // Позволяем системе выйти (закрыть экран)
-        return true;
+        if (context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
         body: Stack(
@@ -491,8 +494,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   },
                   onPositionChanged: (MapCamera camera, bool hasGesture) {
                     if (hasGesture) {
-                      if (_isTrackingPilot)
+                      if (_isTrackingPilot) {
                         setState(() => _isTrackingPilot = false);
+                      }
                       if (!_isFreePanMode) {
                         _autoReturnTimer?.cancel();
                         _autoReturnTimer = Timer(
@@ -1101,11 +1105,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         if (!_isFreePanMode) {
                           _isTrackingPilot = true;
                           final loc = ref.read(locationProvider).valueOrNull;
-                          if (loc != null)
+                          if (loc != null) {
                             _animatedMapMove(
                               LatLng(loc.latitude, loc.longitude),
                               _mapController.camera.zoom,
                             );
+                          }
                         }
                       });
                       _resetUiTimer();
@@ -1122,8 +1127,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         _rotationMode = _rotationMode == MapRotationMode.north
                             ? MapRotationMode.heading
                             : MapRotationMode.north;
-                        if (_rotationMode == MapRotationMode.north)
+                        if (_rotationMode == MapRotationMode.north) {
                           _mapController.rotate(0);
+                        }
                       });
                       _resetUiTimer();
                     },
@@ -1168,7 +1174,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             final versionText = versionAsync.when(
                               data: (info) => ' v${info.version}',
                               loading: () => '',
-                              error: (_, __) => '',
+                              error: (_, _) => '',
                             );
                             return Text(
                               'ParaFlight$versionText',
@@ -1230,7 +1236,8 @@ String _formatDuration(Duration duration) {
   String twoDigits(int n) => n.toString().padLeft(2, "0");
   String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
   String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-  if (duration.inHours > 0)
+  if (duration.inHours > 0) {
     return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
+  }
   return "$twoDigitMinutes:$twoDigitSeconds";
 }

@@ -34,29 +34,28 @@ class ScreenSettingsScreen extends ConsumerWidget {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue),
             ),
           ),
-          RadioListTile<AppOrientation>(
-            title: const Text('Системные настройки (Автоповорот)'),
-            value: AppOrientation.system,
+          // Изменение: RadioListTile.groupValue/onChanged устарели с Flutter 3.32 → используем RadioGroup
+          RadioGroup<AppOrientation>(
             groupValue: currentOrientation,
             onChanged: (val) {
               if (val != null) ref.read(orientationProvider.notifier).setOrientation(val);
-            }, // конец onChanged
-          ),
-          RadioListTile<AppOrientation>(
-            title: const Text('Портрет (Вертикально)'),
-            value: AppOrientation.portrait,
-            groupValue: currentOrientation,
-            onChanged: (val) {
-              if (val != null) ref.read(orientationProvider.notifier).setOrientation(val);
-            }, // конец onChanged
-          ),
-          RadioListTile<AppOrientation>(
-            title: const Text('Ландшафт (Горизонтально)'),
-            value: AppOrientation.landscape,
-            groupValue: currentOrientation,
-            onChanged: (val) {
-              if (val != null) ref.read(orientationProvider.notifier).setOrientation(val);
-            }, // конец onChanged
+            },
+            child: Column(
+              children: [
+                RadioListTile<AppOrientation>(
+                  title: const Text('Системные настройки (Автоповорот)'),
+                  value: AppOrientation.system,
+                ),
+                RadioListTile<AppOrientation>(
+                  title: const Text('Портрет (Вертикально)'),
+                  value: AppOrientation.portrait,
+                ),
+                RadioListTile<AppOrientation>(
+                  title: const Text('Ландшафт (Горизонтально)'),
+                  value: AppOrientation.landscape,
+                ),
+              ],
+            ),
           ),
           const Divider(),
           const Padding(

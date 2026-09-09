@@ -62,6 +62,12 @@ class VerticalSpeedNotifier extends StateNotifier<double> {
       state = 0.0;
     } // конец if-else
   } // конец метода addLocation
+
+  void clear() {
+    _buffer.clear();
+    state = 0.0;
+  } // конец метода clear
+
 } // конец класса VerticalSpeedNotifier
 
 final verticalSpeedProvider = StateNotifierProvider<VerticalSpeedNotifier, double>((ref) {
@@ -74,17 +80,15 @@ final verticalSpeedProvider = StateNotifierProvider<VerticalSpeedNotifier, doubl
     }
   });
 
-  ref.listen(dataSourceProvider, (previous, next) {
+ref.listen(dataSourceProvider, (previous, next) {
     if (previous != next) {
-      notifier.state = 0.0;
-      notifier._buffer.clear();
+      notifier.clear();
     }
   });
 
   ref.listen(gpxPointsProvider, (previous, next) {
-    notifier.state = 0.0;
-    notifier._buffer.clear();
+    notifier.clear();
   });
-
+  
   return notifier;
 });

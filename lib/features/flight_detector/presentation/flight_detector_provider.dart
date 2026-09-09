@@ -40,16 +40,13 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
   final FlightDetectorPipeline _pipeline;
   final List<LocationEntity> Function() _getPoints;
   final int Function() _getCurrentIndex;
-  DateTime? _lastTimestamp;
   int? _lastIndex;
   
   FlightDetectorNotifier(
     this._pipeline, {
-    required List<LocationEntity> Function() getPoints,
-    required int Function() getCurrentIndex,
-  })  : _getPoints = getPoints,
-         _getCurrentIndex = getCurrentIndex,
-        super(const FlightDetectorState());
+    required this._getPoints,
+    required this._getCurrentIndex,
+  })  : super(const FlightDetectorState());
 
   void updateLocation(LocationEntity location, bool isSimulator, WindCalculationResult? currentWind, {bool useCalculatedSpeed = false}) {
     bool isJump = false;
@@ -66,8 +63,6 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
       // Состояние State Machine никогда не должно сбрасываться из-за них.
       isJump = false;
     }
-
-    _lastTimestamp = location.timestamp;
 
     if (isJump) {
       // При перемотке сбрасываем и пересобираем состояние
@@ -103,7 +98,6 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
 
   void clear() {
     _pipeline.reset();
-    _lastTimestamp = null;
     _lastIndex = null;
     state = const FlightDetectorState();
   } // конец метода clear
@@ -124,19 +118,24 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
     getCurrentIndex: () => ref.read(playbackProvider).currentIndex,
   );
 
-  ref.listen(locationProvider, (previous, asyncLocation) {
+ref.listen(locationProvider, (previous, asyncLocation) {
     final location = asyncLocation.valueOrNull;
-    if (location != null && ref.read(dataSourceProvider) == DataSource.simulator) {
+    if (location != null) {
+      final dataSource = ref.read(dataSourceProvider);
       final currentWind = ref.read(windProvider);
+      
+      // Вычисляем математическую скорость всегда для симулятора, 
+      // а для встроенного GPS - только если включен тумблер "Данные эмулятора"
+      final useMath = dataSource == DataSource.simulator || ref.read(emulatorDataEnabledProvider);
+
       notifier.updateLocation(
         location,
-        true,
+        dataSource == DataSource.simulator, // Флаг isSimulator нужен для правильной обработки прыжков во времени (Rewind)
         currentWind,
-        useCalculatedSpeed: true, // В симуляторе всегда используем вычисленную
+        useCalculatedSpeed: useMath,
       );
     }
   });
-
   ref.listen(dataSourceProvider, (previous, next) {
     if (previous != next) {
       notifier.clear();

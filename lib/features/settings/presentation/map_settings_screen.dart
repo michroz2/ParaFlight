@@ -68,21 +68,24 @@ class MapSettingsScreen extends ConsumerWidget {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          RadioListTile<MapRotationMode>(
-            title: const Text('Север сверху (North Up)'),
-            value: MapRotationMode.north,
+          // Изменение: RadioListTile.groupValue/onChanged устарели с Flutter 3.32 → используем RadioGroup
+          RadioGroup<MapRotationMode>(
             groupValue: settings.defaultRotationMode,
             onChanged: (value) {
               if (value != null) notifier.setDefaultRotation(value);
             },
-          ),
-          RadioListTile<MapRotationMode>(
-            title: const Text('По курсу (Track Up)'),
-            value: MapRotationMode.heading,
-            groupValue: settings.defaultRotationMode,
-            onChanged: (value) {
-              if (value != null) notifier.setDefaultRotation(value);
-            },
+            child: Column(
+              children: [
+                RadioListTile<MapRotationMode>(
+                  title: const Text('Север сверху (North Up)'),
+                  value: MapRotationMode.north,
+                ),
+                RadioListTile<MapRotationMode>(
+                  title: const Text('По курсу (Track Up)'),
+                  value: MapRotationMode.heading,
+                ),
+              ],
+            ),
           ),
         ],
       ), // конец ListView

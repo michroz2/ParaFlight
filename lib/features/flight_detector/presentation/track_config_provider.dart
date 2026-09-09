@@ -67,24 +67,33 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
     if (enableCfvIntersection != null) await prefs.setBool('enableCfvIntersection', enableCfvIntersection);
     if (enableCfvHighway != null) await prefs.setBool('enableCfvHighway', enableCfvHighway);
     if (enableDebugMarkers != null) await prefs.setBool('enableDebugMarkers', enableDebugMarkers);
-    if (takeoffWaitTimeSec != null)
+    if (takeoffWaitTimeSec != null) {
       await prefs.setInt('takeoffWaitTimeSec', takeoffWaitTimeSec);
-    if (takeoffFlightTimeSec != null)
+    }
+    if (takeoffFlightTimeSec != null) {
       await prefs.setInt('takeoffFlightTimeSec', takeoffFlightTimeSec);
-    if (landingConfirmTimeSec != null)
+    }
+    if (landingConfirmTimeSec != null) {
       await prefs.setInt('landingConfirmTimeSec', landingConfirmTimeSec);
-    if (minFlightSpeedMs != null)
+    }
+    if (minFlightSpeedMs != null) {
       await prefs.setDouble('minFlightSpeedMs', minFlightSpeedMs);
-    if (maxWalkSpeedMs != null)
+    }
+    if (maxWalkSpeedMs != null) {
       await prefs.setDouble('maxWalkSpeedMs', maxWalkSpeedMs);
-    if (cfvWindFailTimeoutSec != null)
+    }
+    if (cfvWindFailTimeoutSec != null) {
       await prefs.setInt('cfvWindFailTimeoutSec', cfvWindFailTimeoutSec);
-    if (cfvTurnWindowSec != null)
+    }
+    if (cfvTurnWindowSec != null) {
       await prefs.setInt('cfvTurnWindowSec', cfvTurnWindowSec);
-    if (gpsRecordIntervalSec != null)
+    }
+    if (gpsRecordIntervalSec != null) {
       await prefs.setDouble('gpsRecordIntervalSec', gpsRecordIntervalSec);
-    if (gpsCleanupExtraSec != null)
+    }
+    if (gpsCleanupExtraSec != null) {
       await prefs.setInt('gpsCleanupExtraSec', gpsCleanupExtraSec);
+    }
 
     state = state.copyWith(
       enableAutoTakeoff: enableAutoTakeoff,

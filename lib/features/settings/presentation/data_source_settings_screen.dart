@@ -7,7 +7,6 @@
 //   0.6.2 - В диалоге выбора трека добавлено отображение размера файла (Б/КБ/МБ)
 // =============================================================================
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -70,14 +69,14 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                       }
                       return ListTile(
                         leading: const Icon(Icons.map),
-                        title: Text(name),
-                        subtitle: Text(
-                          sizeLabel,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        title: Text('$name\t\t - \t\t$sizeLabel'),
+                        // subtitle: Text(
+                        //   sizeLabel,
+                        //   style: const TextStyle(
+                        //     fontSize: 12,
+                        //     color: Colors.black,
+                        //   ),
+                        // ),
                         onTap: () {
                           ref
                               .read(selectedGpxFileProvider.notifier)
@@ -110,29 +109,8 @@ class DataSourceSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         children: [
-          RadioListTile<DataSource>(
-            title: const Text('Симулятор GPX'),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Воспроизведение записанного трека с симуляцией времени',
-                ),
-                if (currentSource == DataSource.simulator) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Текущий трек: $fileName',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _showTrackPicker(context, ref),
-                    icon: const Icon(Icons.folder_open),
-                    label: const Text('Выбрать другой трек'),
-                  ),
-                ],
-              ],
-            ),
-            value: DataSource.simulator,
+          // Изменение: RadioListTile.groupValue/onChanged устарели с Flutter 3.32 → используем RadioGroup
+          RadioGroup<DataSource>(
             groupValue: currentSource,
             onChanged: (DataSource? value) async {
               if (value != null) {
@@ -167,7 +145,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                         cleanupExtraSec: config.gpsCleanupExtraSec,
                         storageService: ref.read(localStorageProvider), // Новое: пробрасываем сервис
                       );
-                      
+
                       // Новое: показываем диалог после сохранения
                       if (context.mounted && savedPaths.isNotEmpty) {
                         final fileNames = savedPaths.map((p) => p.split(RegExp(r'[\\/]')).last).join(', ');
@@ -191,6 +169,8 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                   }
                 }
 
+                if (!context.mounted) return; // Защита от использования инвалидного контекста
+
                 ref.read(dataSourceProvider.notifier).setSource(value);
                 if (value == DataSource.simulator &&
                     (selectedFile == null || selectedFile.isEmpty)) {
@@ -198,20 +178,41 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                 }
               }
             },
-          ),
-
-          RadioListTile<DataSource>(
-            title: const Text('Встроенный GPS смартфона'),
-            subtitle: const Text(
-              'Использование аппаратного датчика геолокации устройства',
+            child: Column(
+              children: [
+                RadioListTile<DataSource>(
+                  title: const Text('Симулятор GPX'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Воспроизведение записанного трека с симуляцией времени',
+                      ),
+                      if (currentSource == DataSource.simulator) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Текущий трек: $fileName',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _showTrackPicker(context, ref),
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Выбрать другой трек'),
+                        ),
+                      ],
+                    ],
+                  ),
+                  value: DataSource.simulator,
+                ),
+                RadioListTile<DataSource>(
+                  title: const Text('Встроенный GPS смартфона'),
+                  subtitle: const Text(
+                    'Использование аппаратного датчика геолокации устройства',
+                  ),
+                  value: DataSource.internalGps,
+                ),
+              ],
             ),
-            value: DataSource.internalGps,
-            groupValue: currentSource,
-            onChanged: (DataSource? value) {
-              if (value != null) {
-                ref.read(dataSourceProvider.notifier).setSource(value);
-              }
-            },
           ),
           if (currentSource == DataSource.internalGps)
             SwitchListTile(

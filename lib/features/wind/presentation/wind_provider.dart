@@ -65,11 +65,9 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
 
   WindNotifier({
     required this._pipeline,
-    required List<LocationEntity> Function() getPoints,
-    required int Function() getCurrentIndex,
-  })  : _getPoints = getPoints,
-        _getCurrentIndex = getCurrentIndex,
-        super(null);
+    required this._getPoints,
+    required this._getCurrentIndex,
+  })  : super(null);
 
   void clear() {
     _pipeline.reset();

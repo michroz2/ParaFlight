@@ -8,7 +8,6 @@
 // =============================================================================
 
 import 'dart:math';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/fuel_provider.dart';

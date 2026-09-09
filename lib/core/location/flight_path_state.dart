@@ -1,20 +1,19 @@
 // =============================================================================
 // Файл:    flight_path_state.dart
 // Проект:  ParaFlight
-// Версия:  0.1.2
+// Версия:  1.18.8
 // Цель:    Провайдер пути полета
 // Изменения:
+//   1.18.8 - Унификация прослушивания locationProvider для отрисовки трека
 //   0.1.2 - Первичная реализация
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'location_state.dart';
 import 'location_entity.dart';
 
 import '../../features/flight_detector/presentation/flight_detector_provider.dart';
-import '../../features/flight_detector/presentation/track_config_provider.dart';
 
 // Класс для представления сегмента трека
 class TrackSegment {
@@ -33,22 +32,23 @@ class RealGpsTrackNotifier extends Notifier<List<LocationEntity>> {
       }
     });
 
+    // НОВОЕ: Унифицированный слушатель источника правды
+    ref.listen(locationProvider, (prev, nextAsync) {
+      final loc = nextAsync.valueOrNull;
+      final source = ref.read(dataSourceProvider);
+      
+      // Записываем точки в историю, только если активен Внутренний GPS
+      if (loc != null && source == DataSource.internalGps) {
+        state = [...state, loc];
+      }
+    });
+
     return [];
   } // конец метода build
   
-  // Вызывается напрямую из realGpsProvider, чтобы обойти батчинг Riverpod
-  void addPoint(LocationEntity loc) {
-    final source = ref.read(dataSourceProvider);
-    if (source != DataSource.internalGps) return;
-    
-    // Прореживание теперь выполняется централизованно в realGpsProvider
-    debugPrint('RealGpsTrackNotifier | Adding point to state (direct)');
-    state = [...state, loc];
-  }
-
   void clear() {
     state = [];
-  }
+  } // конец метода clear
 } // конец класса RealGpsTrackNotifier
 
 final realGpsTrackProvider =

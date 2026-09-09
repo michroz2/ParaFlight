@@ -8,7 +8,6 @@
 // =============================================================================
 import 'dart:math' as math;
 import 'dart:isolate';
-import 'package:latlong2/latlong.dart';
 import 'location_entity.dart';
 
 // Функция парсинга в Isolate с прогресс-баром
@@ -88,7 +87,7 @@ void parseGpxStreamingIsolate(Map<String, dynamic> args) {
     }
     
     sendPort.send(locations);
-  } catch (e, stack) {
+  } catch (e) {
     sendPort.send(e.toString());
   }
 }

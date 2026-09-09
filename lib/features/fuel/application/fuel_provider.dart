@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/preferences/preferences_provider.dart';
 import '../../../core/location/location_state.dart';
-import '../../../core/location/location_state.dart';
 import '../domain/fuel_state.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart';
 import '../../flight_detector/domain/flight_state.dart';

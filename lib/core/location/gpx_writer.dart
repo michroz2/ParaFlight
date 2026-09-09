@@ -6,8 +6,6 @@
 // Изменения:
 //   0.1.0 - Первичная реализация
 // =============================================================================
-import 'dart:io';
-import 'package:path/path.dart' as p;
 import 'location_entity.dart';
 import '../storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
 import '../../features/flight_detector/domain/flight_state.dart';
@@ -95,8 +93,9 @@ class GpxWriter {
           : rawPoints.length - 1;
 
       if (flightStartIndex == -1) flightStartIndex = 0;
-      if (flightFinishIndex == -1 || flightFinishIndex < flightStartIndex)
+      if (flightFinishIndex == -1 || flightFinishIndex < flightStartIndex) {
         flightFinishIndex = rawPoints.length - 1;
+      }
 
       int segmentStartIndex = 0;
       int segmentFinishIndex = rawPoints.length - 1;

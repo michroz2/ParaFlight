@@ -10,7 +10,6 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:geolocator/geolocator.dart';
 import 'dart:isolate';
 
@@ -34,9 +33,6 @@ import 'playback_state.dart';
 import 'playback_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'flight_path_state.dart';
-import '../../features/flight_detector/presentation/flight_detector_provider.dart';
-import '../../features/wind/presentation/wind_provider.dart';
 
 // Новое: Провайдер выбранного GPX файла
 final selectedGpxFileProvider = StateNotifierProvider<SelectedGpxFileNotifier, String?>((ref) {
@@ -194,7 +190,7 @@ final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* 
         altitude: lastPosition.altitude,
         speed: lastPosition.speed,
         heading: lastPosition.heading,
-        timestamp: lastPosition.timestamp ?? DateTime.now(),
+        timestamp: lastPosition.timestamp,
       );
     }
   } catch (e) {
@@ -273,18 +269,6 @@ final realGpsProvider = StreamProvider.autoDispose<LocationEntity>((ref) async* 
             loc.timestamp.difference(lastRecordTime).inMilliseconds >= intervalMs) {
           lastRecordTime = loc.timestamp;
 
-          // Прямое обновление трека и детектора без Riverpod-батчинга
-          // ОБА получают абсолютно одинаковый прореженный набор точек
-          Future.microtask(() {
-            final source = ref.read(dataSourceProvider);
-            if (source == DataSource.internalGps) {
-              ref.read(realGpsTrackProvider.notifier).addPoint(loc);
-              final currentWind = ref.read(windProvider);
-              final useMath = ref.read(emulatorDataEnabledProvider);
-              ref.read(flightDetectorProvider.notifier).updateLocation(loc, false, currentWind, useCalculatedSpeed: useMath);
-            }
-          });
-          
           yield loc;
         } else {
           // Игнорируем промежуточные точки

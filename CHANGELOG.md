@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.8] - 2026-09-09
+### Fixed / Refactor
+- `location_state.dart`: удалён мёртвый код (`?? DateTime.now()` для non-nullable `timestamp`)
+- `flight_detector_provider.dart`: удалено неиспользуемое поле `_lastTimestamp` и все его присвоения
+- `dashboard_screen.dart`: добавлены недостающие `mounted`-проверки перед `_showFuelDialog` и `showDialog` в `Future.microtask`
+- `dashboard_screen.dart`: `WillPopScope` заменён на `PopScope` (устарел с Flutter 3.12); логика диалога сохранения трека сохранена полностью
+- `screen_settings_screen.dart`, `map_settings_screen.dart`, `data_source_settings_screen.dart`: `RadioListTile.groupValue`/`onChanged` заменены на `RadioGroup` (устарели с Flutter 3.32)
+
 ## [1.18.7] - 2026-09-09
 ### Added
 - В диалоге «Выберите трек для симуляции» каждая строка теперь показывает размер файла. Формат: `Б` (< 1 КБ), `КБ` (< 1 МБ), `МБ` (≥ 1 МБ).
