@@ -1,4 +1,11 @@
-﻿// Версия: 0.1.0 | Цель: Провайдер доступа к SharedPreferences
+// =============================================================================
+// Файл:    preferences_provider.dart
+// Проект:  ParaFlight
+// Версия:  0.1.0
+// Цель:    Провайдер доступа к SharedPreferences
+// Изменения:
+//   0.1.0 - Первичная реализация
+// =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';

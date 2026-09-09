@@ -1,3 +1,11 @@
+// =============================================================================
+// Файл:    fuel_settings_screen.dart
+// Проект:  ParaFlight
+// Версия:  0.1.0
+// Цель:    Экран настроек учета расхода топлива
+// Изменения:
+//   0.1.0 - Первичная реализация
+// =============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/fuel_provider.dart';
