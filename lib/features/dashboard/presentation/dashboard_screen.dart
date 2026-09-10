@@ -670,11 +670,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (currentLocation != null)
-                          Text(
-                            'SOG: ${currentLocation.speed.toStringAsFixed(1)} м/с',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
                         Row(
                           children: [
                             const Icon(Icons.air, size: 16, color: Colors.blue),
@@ -702,6 +697,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               'Направление: ${wind.windDirection.toStringAsFixed(0)}°',
                             ),
                           ],
+                        ),
+                        if (currentLocation != null)
+                        Text(
+                          'SOG: ${currentLocation.speed.toStringAsFixed(1)} м/с',
+                          // style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'Airspeed: ${wind.airspeed.toStringAsFixed(1)} м/с',

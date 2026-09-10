@@ -13,9 +13,6 @@ import '../../../core/location/location_entity.dart';
 import '../domain/wind_models.dart';
 import '../application/wind_pipeline.dart'; // Восстановленный импорт
 
-import '../../flight_detector/presentation/flight_detector_provider.dart';
-import '../../flight_detector/domain/flight_state.dart';
-import '../../flight_detector/presentation/track_config_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
 
 final StateNotifierProvider<WindNotifier, WindCalculationResult?> windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>((ref) {
@@ -33,16 +30,13 @@ final StateNotifierProvider<WindNotifier, WindCalculationResult?> windProvider =
     final location = asyncLocation.valueOrNull;
     
     if (location != null) {
-      final flightState = ref.read(flightDetectorProvider).state;
-      final trackConfig = ref.read(trackConfigProvider);
+// Изменение: Убраны зависимости от flightState и trackConfig
       
       notifier.updateLocationWithLogic(
         timestamp: location.timestamp,
         speed: location.speed,
         heading: location.heading,
         isSimulator: ref.read(dataSourceProvider) == DataSource.simulator,
-        flightState: flightState,
-        cfvMinFlightSog: trackConfig.cfvMinFlightSog,
       );
     }
   });
@@ -75,48 +69,18 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
     state = null;
   } // конец метода clear
 
-  bool _isPaused = false;
-  DateTime? _activeStartTime;
+// Изменение: Переменные _isPaused и _activeStartTime удалены
 
   void updateLocationWithLogic({
     required DateTime timestamp,
     required double speed,
     required double heading,
     required bool isSimulator,
-    required FlightState flightState,
-    required double cfvMinFlightSog,
   }) {
-    if (flightState == FlightState.inFlight) {
-      _isPaused = false;
-      _activeStartTime = null; // сброс таймера таймаута
-    } else {
-      // Логика запуска на земле (поиск Mid-Air Start)
-      if (_isPaused) {
-        if (speed < 1.0) { // SOG упал к нулю (менее 1 м/с) - сбрасываем блокировку
-          _isPaused = false;
-          _activeStartTime = null;
-        }
-      } else {
-        if (speed > cfvMinFlightSog) {
-          _activeStartTime ??= timestamp;
-          // Если мы едем больше 3 минут и не взлетели - это машина, пауза
-          if (timestamp.difference(_activeStartTime!).inSeconds > 180) {
-            _isPaused = true;
-            clear();
-            return;
-          }
-        } else {
-          // Если скорость упала, сбрасываем таймер
-          _activeStartTime = null;
-          clear();
-          return;
-        }
-      }
-    }
-
-    if (_isPaused) return;
-
+    // Изменение: Вся логика "Привратника" (Gatekeeper) удалена. Ветер считается непрерывно.
+    
     bool isJump = false;
+    // ... дальше идет проверка isJump ...
     if (_lastTimestamp != null) {
       final diff = timestamp.difference(_lastTimestamp!).inMilliseconds;
       if (diff < 0 || diff > 2000) {

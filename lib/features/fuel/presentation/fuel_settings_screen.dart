@@ -85,7 +85,7 @@ class FuelSettingsScreen extends ConsumerWidget {
           ),
           SwitchListTile(
             title: const Text('Корректировать при симуляции'),
-            subtitle: const Text('Пересчитывать расход во время использования симулятора'),
+            subtitle: const Text('Пересчитывать расход также и в симуляторе'),
             value: fuelState.correctInSimulator,
             onChanged: fuelState.enableFuelTracking
                 ? (val) => notifier.toggleCorrectInSimulator(val)
@@ -93,7 +93,7 @@ class FuelSettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
-            title: const Text('Рубежный остаток (л)'),
+            title: const Text('Рубежный (тревожный) остаток (л)'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
