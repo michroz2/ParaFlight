@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_pipeline.dart
 // Проект:  ParaFlight
-// Версия:  0.2.0
+// Версия:  1.20.2
 // Цель:    Конвейер вычисления ветра (буферизация и запуск)
 // Изменения:
 //   0.2.0 - Первичная реализация
+//   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 // =============================================================================
 
 import 'dart:math';
@@ -70,15 +71,9 @@ class WindPipeline {
     final cutoffTime = timestamp.subtract(Duration(milliseconds: (config.windowSizeSec * 1000).toInt()));
     _buffer.removeWhere((p) => p.timestamp.isBefore(cutoffTime));
 
-    // 4. Maneuver Detector (Проверка на изгиб трека)
-    if (_buffer.length < 5) return null; // Слишком мало данных
+// 4. ЭШЕЛОН 1 и 2: Проверка рабочего буфера (Без стирания!)
+    if (_buffer.length < 5) return null; // Изменение: Не накоплен минимум точек. Ждем.
 
-    // Поскольку курс цикличен (0-360), простая разница может не сработать на пересечении Севера,
-    // но для простого детектора искривления можно проверять максимальное отклонение векторов
-    // от среднего. Для простоты вычислим максимальную дельту углов.
-    
-    // Правильный способ проверки изгиба:
-    // Найдем максимальное абсолютное различие углов (с учетом перехода через 0)
     double maxDelta = 0;
     for (int i = 0; i < _buffer.length; i++) {
       for (int j = i + 1; j < _buffer.length; j++) {
@@ -89,24 +84,34 @@ class WindPipeline {
         if (delta > maxDelta) {
           maxDelta = delta;
         }
-      }
-    }
+      } // конец for j
+    } // конец for i
 
     if (maxDelta < config.minTurnAngleDeg) {
-      // Идет прямолинейный полет, расчет невозможен
-      return null;
+      return null; // Изменение: Летим по прямой (недостаточно угла). Ждем.
     }
 
     // 5. Вычисление ветра через математическое ядро
     final result = CircleKasaFit.fit(_buffer, minRoundness: config.minRoundness);
 
-    // 6. Валидация (Edge cases)
-    if (result != null) {
-      if (result.airspeed >= config.minAirspeedMs && result.airspeed <= config.maxAirspeedMs) {
-        return result;
-      }
+    // 6. ЭШЕЛОН 3: Валидация физики и Умное Стирание (Smart Flush)
+    if (result == null) {
+      // Новое: Рабочий буфер собран (угол достаточен), но ядро забраковало форму (Roundness).
+      // Это искажение от акселератора. Стираем яд!
+      _buffer.clear();
+      return null;
     }
 
-    return null;
+    // Новое: Проверяем физику и качество
+    final bool isAirspeedValid = result.airspeed >= config.minAirspeedMs && result.airspeed <= config.maxAirspeedMs;
+    final bool isRmseValid = result.rmse <= config.maxRmseMs;
+
+    if (isAirspeedValid && isRmseValid) {
+      return result; // Всё идеально! Отдаем свежий ветер.
+    } else {
+      // Новое: Окружность найдена, но скорость или погрешность запредельные. Стираем яд!
+      _buffer.clear();
+      return null;
+    }
   }
 }

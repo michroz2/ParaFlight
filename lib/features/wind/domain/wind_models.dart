@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_models.dart
 // Проект:  ParaFlight
-// Версия:  0.2.0
+// Версия:  1.20.2
 // Цель:    Модели данных для модуля ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
+//   1.20.2 - Добавлен флаг устаревших данных (когда буфер промывается от яда)
 // =============================================================================
 
 class WindDataPoint {
@@ -39,6 +40,9 @@ class WindCalculationResult {
   
   final DateTime timestamp;
 
+  // Новое: Флаг устаревших данных (когда буфер промывается от яда)
+  final bool isStale;
+
   const WindCalculationResult({
     required this.windSpeed,
     required this.windDirection,
@@ -46,5 +50,26 @@ class WindCalculationResult {
     required this.rmse,
     required this.roundness,
     required this.timestamp,
+    this.isStale = false, 
   });
+  // Новое: Метод copyWith для безопасного обновления состояния
+  WindCalculationResult copyWith({
+    double? windSpeed,
+    double? windDirection,
+    double? airspeed,
+    double? rmse,
+    double? roundness,
+    DateTime? timestamp,
+    bool? isStale,
+  }) {
+    return WindCalculationResult(
+      windSpeed: windSpeed ?? this.windSpeed,
+      windDirection: windDirection ?? this.windDirection,
+      airspeed: airspeed ?? this.airspeed,
+      rmse: rmse ?? this.rmse,
+      roundness: roundness ?? this.roundness,
+      timestamp: timestamp ?? this.timestamp,
+      isStale: isStale ?? this.isStale,
+    );
+  }
 }

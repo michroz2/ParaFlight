@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_circle_painter.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  1.20.2
 // Цель:    Отрисовка круга ветра с радарным масштабом
 // Изменения:
 //   0.1.0 - Первичная реализация
+//   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 // =============================================================================
 
 import 'dart:math';
@@ -17,6 +18,7 @@ class WindCirclePainter extends CustomPainter {
   final double diameter;
   final String scaleText;
   final bool showNorthPointer;
+  final bool isStale; // Новое
 
   WindCirclePainter({
     required this.windDirection,
@@ -25,6 +27,7 @@ class WindCirclePainter extends CustomPainter {
     required this.diameter,
     required this.scaleText,
     required this.showNorthPointer,
+    required this.isStale,
   });
 
   @override
@@ -172,7 +175,8 @@ class WindCirclePainter extends CustomPainter {
         ..lineTo(p2X, p2Y)
         ..close();
 
-      canvas.drawPath(arrowPath, Paint()..color = Colors.blueAccent);
+      // Изменение: Цвет зависит от свежести данных
+      canvas.drawPath(arrowPath, Paint()..color = isStale ? Colors.grey : Colors.blueAccent);
 
       // 5. Отрисовка лэйбла ветра
       final textStr = windSpeed!.toStringAsFixed(1);
@@ -196,9 +200,10 @@ class WindCirclePainter extends CustomPainter {
         height: textPainter.height + 4,
       );
 
+      // Изменение: Цвет подложки текста зависит от свежести данных
       canvas.drawRRect(
         RRect.fromRectAndRadius(textRect, const Radius.circular(6.0)),
-        Paint()..color = const Color(0xCC333333),
+        Paint()..color = isStale ? Colors.grey.withAlpha(200) : const Color(0xCC333333),
       );
 
       textPainter.paint(

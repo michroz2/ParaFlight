@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_config.dart
 // Проект:  ParaFlight
-// Версия:  0.2.0
+// Версия:  1.20.2
 // Цель:    Конфигурация модуля ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
+//   1.20.2 - Добавлена максимальная ошибка фиттинга в м/с
 // =============================================================================
 
 class WindConfig {
@@ -40,6 +41,9 @@ class WindConfig {
   /// Автоматический показ дебаг окна телеметрии ветра
   final bool enableWindOverlay;
 
+  /// Новое: Максимально допустимая ошибка фиттинга в м/с
+  final double maxRmseMs;
+
   const WindConfig({
     this.windowSizeSec = 120.0,
     this.minTurnAngleDeg = 30.0,
@@ -51,6 +55,7 @@ class WindConfig {
     this.minRoundness = 0.1,
     this.enableWindArrow = true, // Новое
     this.enableWindOverlay = false,
+    this.maxRmseMs = 2, // Новое
   });
 
   WindConfig copyWith({
@@ -64,6 +69,7 @@ class WindConfig {
     double? minRoundness,
     bool? enableWindArrow,
     bool? enableWindOverlay,
+    double? maxRmseMs,
   }) {
     return WindConfig(
       windowSizeSec: windowSizeSec ?? this.windowSizeSec,
@@ -76,6 +82,7 @@ class WindConfig {
       minRoundness: minRoundness ?? this.minRoundness,
       enableWindArrow: enableWindArrow ?? this.enableWindArrow, // Новое
       enableWindOverlay: enableWindOverlay ?? this.enableWindOverlay,
+      maxRmseMs: maxRmseMs ?? this.maxRmseMs,
     );
   }
 }

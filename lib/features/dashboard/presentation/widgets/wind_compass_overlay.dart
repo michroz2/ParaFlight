@@ -1,8 +1,10 @@
 // =============================================================================
 // Файл:    wind_compass_overlay.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  1.20.2
 // Цель:    Изолированный слой отрисовки радара и компаса ветра
+// Изменения:
+//   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 // =============================================================================
 
 import 'dart:math';
@@ -95,6 +97,7 @@ class WindCompassOverlay extends ConsumerWidget {
                 diameter: windCircleDiameter,
                 scaleText: scaleText,
                 showNorthPointer: rotationMode == MapRotationMode.heading,
+                isStale: wind?.isStale ?? false, // Новое
               ),
             ),
           ),
