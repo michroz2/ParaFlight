@@ -1,10 +1,10 @@
 // =============================================================================
 // Файл:    gpx_writer.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  0.1.1
 // Цель:    Запись трека полета в GPX-файл через LocalStorageService
 // Изменения:
-//   0.1.0 - Первичная реализация
+//   0.1.1 - Высота <ele> округляется до 0.1 м (toStringAsFixed(1))
 // =============================================================================
 import 'location_entity.dart';
 import '../storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
@@ -37,7 +37,7 @@ class GpxWriter {
       sb.writeln(
         '      <trkpt lat="${point.latitude}" lon="${point.longitude}">',
       );
-      sb.writeln('        <ele>${point.altitude}</ele>');
+      sb.writeln('        <ele>${point.altitude.toStringAsFixed(1)}</ele>'); // Изменение: округление до 0.1 м
       sb.writeln(
         '        <time>${point.timestamp.toUtc().toIso8601String()}</time>',
       );

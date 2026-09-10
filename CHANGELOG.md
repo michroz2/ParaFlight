@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.1] - 2026-09-10
+### Fixed
+- `gpx_writer.dart`: высота `<ele>` при записи GPX округляется до 0.1 м (`toStringAsFixed(1)`). Ранее записывалось 7–8 знаков после запятой.
+
 ## [1.19.0] - 2026-09-10
 ### Added
 - Иконка приложения.
