@@ -32,7 +32,7 @@ void main() {
         ));
       }
 
-      final result = CircleKasaFit.fit(points);
+      final result = CircleKasaFit.fit(points, 360.0);
       
       expect(result, isNotNull);
       expect(result!.windSpeed, closeTo(5.0, 0.01));
@@ -59,7 +59,7 @@ void main() {
         ));
       }
 
-      final result = CircleKasaFit.fit(points);
+      final result = CircleKasaFit.fit(points, 0.0);
       expect(result, isNull);
     });
   });

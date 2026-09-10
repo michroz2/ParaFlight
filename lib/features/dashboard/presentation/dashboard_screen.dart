@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    dashboard_screen.dart
 // Проект:  ParaFlight
-// Версия:  1.18.9
+// Версия:  1.18.10
 // Цель:    Главный экран с линейными контролами и умным компасом ветра
 // Изменения:
 //   0.7.0 - Добавлены линейные контролы и умный компас ветра
+//   1.18.10 - Вывод параметров буфера ветра (bufferSize и bufferAngle)
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -717,6 +718,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.orange,
+                          ),
+                        ),
+                        // Новое: Данные буфера
+                        Text(
+                          'N=${wind.bufferSize}, ∟=${wind.bufferAngle.toStringAsFixed(0)}°',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
                           ),
                         ),
                       ],

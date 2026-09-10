@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    circle_kasa_fit.dart
 // Проект:  ParaFlight
-// Версия:  1.20.2
+// Версия:  1.20.3
 // Цель:    Математическое ядро фиттинга окружности (Kasa Fit)
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
+//   1.20.3 - Добавлен проброс bufferAngle
 // =============================================================================
 
 import 'dart:math';
@@ -14,7 +15,8 @@ import 'wind_models.dart';
 class CircleKasaFit {
   /// Вычисляет параметры окружности и возвращает вектор ветра и радиус.
   /// Возвращает null, если точек недостаточно, или они лежат на прямой.
-  static WindCalculationResult? fit(List<WindDataPoint> points, {double minRoundness = 0.1}) {
+  // Изменение: Добавлен параметр bufferAngle
+  static WindCalculationResult? fit(List<WindDataPoint> points, double bufferAngle, {double minRoundness = 0.1}) {
     if (points.length < 3) return null;
 
     final n = points.length;
@@ -114,6 +116,8 @@ class CircleKasaFit {
       rmse: rmse,
       roundness: roundness,
       timestamp: points.last.timestamp,
+      bufferSize: points.length, // Новое
+      bufferAngle: bufferAngle, // Новое
     );
-  }
-}
+  } // конец метода fit
+} // конец класса CircleKasaFit
