@@ -186,7 +186,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Воспроизведение записанного трека с симуляцией времени',
+                        'Воспроизведение записанного трека',
                       ),
                       if (currentSource == DataSource.simulator) ...[
                         const SizedBox(height: 8),
@@ -216,9 +216,9 @@ class DataSourceSettingsScreen extends ConsumerWidget {
           ),
           if (currentSource == DataSource.internalGps)
             SwitchListTile(
-              title: const Text('Данные эмулятора (Математические)'),
+              title: const Text('Вычислять скорость по координатам'),
               subtitle: const Text(
-                'Игнорировать нулевую скорость эмулятора и вычислять её по координатам (сглаженно). Включите при отладке в Android эмуляторе.',
+                'Игнорировать скорость GPS и вычислять её по координатам (сглаженно).',
               ),
               value: ref.watch(emulatorDataEnabledProvider),
               onChanged: (value) {

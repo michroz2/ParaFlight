@@ -26,14 +26,21 @@ class WindSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const Text('Отображение', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+          const Text('Отображение', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+          // Новое: Тумблер для графической стрелки
           SwitchListTile(
-            title: const Text('Автоматически показывать виджет ветра'),
+            title: const Text('Показывать стрелку ветра'),
+            value: config.enableWindArrow,
+            onChanged: (value) => notifier.updateConfig(enableWindArrow: value),
+          ),
+          // Изменение: Отвязанная телеметрия
+          SwitchListTile(
+            title: const Text('Показывать телеметрию'), // Изменили текст
             value: config.enableWindOverlay,
             onChanged: (value) => notifier.updateConfig(enableWindOverlay: value),
           ),
           const Divider(),
-          const Text('Анализ трека (Конвейер)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const Text('Анализ трека', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 8),
           
           ListTile(
@@ -52,7 +59,7 @@ class WindSettingsScreen extends ConsumerWidget {
             ),
           ),
           ListTile(
-            title: const Text('Мин. угол поворота (°)'),
+            title: const Text('Необходимый угол поворота (°)'),
             subtitle: Text(config.minTurnAngleDeg.toStringAsFixed(0)),
             trailing: SizedBox(
               width: 150,
@@ -68,7 +75,7 @@ class WindSettingsScreen extends ConsumerWidget {
           ),
           
           const Divider(height: 32),
-          const Text('Жесткий коридор (Airspeed Validator)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const Text('Окно балансировочной скорости', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 8),
 
           ListTile(

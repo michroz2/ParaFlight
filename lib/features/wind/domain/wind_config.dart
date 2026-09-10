@@ -34,7 +34,10 @@ class WindConfig {
   /// Минимальная круглость для отсева прямой линии на акселераторе
   final double minRoundness;
 
-  /// Автоматический показ окна ветра
+  /// Новое: Автоматический показ стрелки ветра на радаре
+  final bool enableWindArrow;
+  
+  /// Автоматический показ дебаг окна телеметрии ветра
   final bool enableWindOverlay;
 
   const WindConfig({
@@ -46,6 +49,7 @@ class WindConfig {
     this.gpxSmoothingWindow = 2,
     this.minCogChangeDeg = 1.0,
     this.minRoundness = 0.1,
+    this.enableWindArrow = true, // Новое
     this.enableWindOverlay = false,
   });
 
@@ -58,6 +62,7 @@ class WindConfig {
     int? gpxSmoothingWindow,
     double? minCogChangeDeg,
     double? minRoundness,
+    bool? enableWindArrow,
     bool? enableWindOverlay,
   }) {
     return WindConfig(
@@ -69,6 +74,7 @@ class WindConfig {
       gpxSmoothingWindow: gpxSmoothingWindow ?? this.gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg ?? this.minCogChangeDeg,
       minRoundness: minRoundness ?? this.minRoundness,
+      enableWindArrow: enableWindArrow ?? this.enableWindArrow, // Новое
       enableWindOverlay: enableWindOverlay ?? this.enableWindOverlay,
     );
   }

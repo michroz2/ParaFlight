@@ -645,9 +645,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
             ),
             
-            if (windConfig.enableWindOverlay && 
-                wind != null &&
-                ref.watch(flightDetectorProvider).state == FlightState.inFlight)
+            // Изменение: Телеметрия теперь зависит только от тумблера и наличия данных
+            if (windConfig.enableWindOverlay && wind != null)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,

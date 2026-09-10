@@ -15,6 +15,7 @@ import '../../../flight_detector/presentation/flight_detector_provider.dart';
 import '../../../flight_detector/domain/flight_state.dart';
 import '../../../wind/presentation/wind_provider.dart';
 import '../../../settings/application/map_settings_provider.dart';
+import '../../../settings/application/wind_config_provider.dart';
 import 'wind_circle_painter.dart';
 
 class WindCompassOverlay extends ConsumerWidget {
@@ -34,6 +35,7 @@ class WindCompassOverlay extends ConsumerWidget {
     final currentLocation = asyncLocation.valueOrNull;
     final wind = ref.watch(windProvider);
     final flightState = ref.watch(flightDetectorProvider).state;
+    final windConfig = ref.watch(windConfigProvider); // Новое: Читаем конфиг ветра
     final mapSettings = ref.watch(mapSettingsProvider);
     final rotationMode = mapSettings.defaultRotationMode;
 
@@ -80,7 +82,8 @@ class WindCompassOverlay extends ConsumerWidget {
             height: windCircleDiameter + 150,
             child: CustomPaint(
               painter: WindCirclePainter(
-                windDirection: flightState == FlightState.inFlight
+                // Изменение: Стрелка показывается только в полете И если включен тумблер
+                windDirection: (flightState == FlightState.inFlight && windConfig.enableWindArrow)
                     ? wind?.windDirection
                     : null,
                 windSpeed: flightState == FlightState.inFlight

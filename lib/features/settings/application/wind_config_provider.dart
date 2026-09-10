@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_config_provider.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  1.20.1
 // Цель:    Провайдер конфигурации ветра
 // Изменения:
 //   0.1.0 - Первичная реализация
+//   1.20.1 - Добавлен параметр enableWindArrow
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: prefs.getDouble('sampleIntervalSec') ?? 0.5,
       gpxSmoothingWindow: prefs.getInt('gpxSmoothingWindow') ?? 2,
       minCogChangeDeg: prefs.getDouble('minCogChangeDeg') ?? 1.0,
+      enableWindArrow: prefs.getBool('enableWindArrow') ?? true, // Новое
       enableWindOverlay: prefs.getBool('enableWindOverlay') ?? false,
     );
   }
@@ -40,6 +42,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     double? sampleIntervalSec,
     int? gpxSmoothingWindow,
     double? minCogChangeDeg,
+    bool? enableWindArrow,
     bool? enableWindOverlay,
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
@@ -51,6 +54,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     if (sampleIntervalSec != null) await prefs.setDouble('sampleIntervalSec', sampleIntervalSec);
     if (gpxSmoothingWindow != null) await prefs.setInt('gpxSmoothingWindow', gpxSmoothingWindow);
     if (minCogChangeDeg != null) await prefs.setDouble('minCogChangeDeg', minCogChangeDeg);
+    if (enableWindArrow != null) await prefs.setBool('enableWindArrow', enableWindArrow); // Новое
     if (enableWindOverlay != null) await prefs.setBool('enableWindOverlay', enableWindOverlay);
 
     state = state.copyWith(
@@ -61,6 +65,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: sampleIntervalSec,
       gpxSmoothingWindow: gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg,
+      enableWindArrow: enableWindArrow, // Новое
       enableWindOverlay: enableWindOverlay,
     );
   }
