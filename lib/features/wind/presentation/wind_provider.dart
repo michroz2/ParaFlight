@@ -96,31 +96,27 @@ class WindNotifier extends StateNotifier<WindState> {
     // Делегируем в конвейер (вся логика определения скачков удалена - Separation of Concerns)
     final latestResult = _pipeline.processLocation(timestamp, speed, heading);
     
-    WindCalculationResult? newMapResult = state.mapResult;
-    WindCalculationResult? newTelemetryResult = state.telemetryResult;
+    WindCalculationResult? newTelemetry = state.telemetryResult;
+    WindCalculationResult? newMap = state.mapResult;
 
     if (latestResult != null) {
-      newTelemetryResult = latestResult; // Телеметрия всегда получает свежую математику
+      // Телеметрия получает всё (чтобы подсветить ошибки красным)
+      newTelemetry = latestResult; 
       
       if (latestResult.isValid) {
-        newMapResult = latestResult; // Карта получает свежую стрелку
+        // Расчет идеален - обновляем стрелку компаса
+        newMap = latestResult; 
       } else {
-        // Пришел яд: телеметрия покажет его, а карта оставит старую стрелку серой
-        newMapResult = state.mapResult?.copyWith(isValid: false);
+        // ВАЛИДАТОР ЗАБРАКОВАЛ РАСЧЕТ:
+        // Компас сохраняет старое направление, но стрелка мгновенно становится серой
+        newMap = state.mapResult?.copyWith(isValid: false);
       }
-    } else {
-       // Пропуск такта (прямая линия)
-       if (newMapResult != null && newMapResult.isValid) {
-         newMapResult = newMapResult.copyWith(isValid: false); // Помечаем как невалидные, если буфер смыт или летим прямо
-       }
-       if (newTelemetryResult != null && newTelemetryResult.isValid) {
-         newTelemetryResult = newTelemetryResult.copyWith(isValid: false);
-       }
-    }
+    } 
+    // Если latestResult == null (полет по прямой, нет маневра) - ничего не меняем, старые данные живут.
 
     state = WindState(
-      mapResult: newMapResult,
-      telemetryResult: newTelemetryResult,
+      mapResult: newMap,
+      telemetryResult: newTelemetry,
       bufferSize: _pipeline.bufferSize,
       bufferAngle: _pipeline.currentBufferAngle,
     );

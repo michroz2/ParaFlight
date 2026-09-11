@@ -101,4 +101,18 @@ class WindState {
     this.bufferSize = 0,
     this.bufferAngle = 0.0,
   });
+
+  WindState copyWith({
+    WindCalculationResult? mapResult,
+    WindCalculationResult? telemetryResult,
+    int? bufferSize,
+    double? bufferAngle,
+  }) {
+    return WindState(
+      mapResult: mapResult ?? this.mapResult,
+      telemetryResult: telemetryResult ?? this.telemetryResult,
+      bufferSize: bufferSize ?? this.bufferSize,
+      bufferAngle: bufferAngle ?? this.bufferAngle,
+    );
+  }
 } // конец класса WindState
