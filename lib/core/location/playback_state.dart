@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    playback_state.dart
 // Проект:  ParaFlight
-// Версия:  0.1.1
+// Версия:  0.1.2
 // Цель:    Состояние воспроизведения симуляции
 // Изменения:
 //   0.1.1 - Первичная реализация
+//   0.1.2 - Добавлено поле seekCount для сигнализации о перемотке
 // =============================================================================
 
 import 'location_entity.dart';
@@ -21,6 +22,9 @@ class PlaybackState {
   // Новое: Временные метки полета
   final Duration currentDuration;
   final Duration totalDuration;
+  
+  // Новое: Сигнал о том, что произошел скачок во времени (перемотка или старт)
+  final int seekCount;
 
   PlaybackState({
     this.currentLocation,
@@ -31,6 +35,7 @@ class PlaybackState {
     this.currentIndex = 0,
     this.currentDuration = Duration.zero,
     this.totalDuration = Duration.zero,
+    this.seekCount = 0, // Новое
   }); // конец конструктора
 
   PlaybackState copyWith({
@@ -42,6 +47,7 @@ class PlaybackState {
     int? currentIndex,
     Duration? currentDuration,
     Duration? totalDuration,
+    int? seekCount, // Новое
   }) {
     return PlaybackState(
       currentLocation: currentLocation ?? this.currentLocation,
@@ -52,6 +58,7 @@ class PlaybackState {
       currentIndex: currentIndex ?? this.currentIndex,
       currentDuration: currentDuration ?? this.currentDuration,
       totalDuration: totalDuration ?? this.totalDuration,
+      seekCount: seekCount ?? this.seekCount, // Новое
     );
   } // конец метода copyWith
 } // конец класса PlaybackState

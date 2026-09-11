@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    flight_detector_provider.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  0.2.0
 // Цель:    Провайдер детектора полета
 // Изменения:
 //   0.1.0 - Первичная реализация
+//   0.2.0 - Устранение костылей для перемотки. Переход на единый сигнал seekCount (DRY)
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,7 +41,6 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
   final FlightDetectorPipeline _pipeline;
   final List<LocationEntity> Function() _getPoints;
   final int Function() _getCurrentIndex;
-  int? _lastIndex;
   
   FlightDetectorNotifier(
     this._pipeline, {
@@ -48,57 +48,40 @@ class FlightDetectorNotifier extends StateNotifier<FlightDetectorState> {
     required this._getCurrentIndex,
   })  : super(const FlightDetectorState());
 
-  void updateLocation(LocationEntity location, bool isSimulator, WindCalculationResult? currentWind, {bool useCalculatedSpeed = false}) {
-    bool isJump = false;
+  void updateLocation(LocationEntity location, WindCalculationResult? currentWind, {bool useCalculatedSpeed = false}) {
+    // Вся логика "прыжков" удалена, слушаем напрямую
+    _pipeline.processLocation(location, currentWind: currentWind, useCalculatedSpeed: useCalculatedSpeed);
+    state = FlightDetectorState(
+      state: _pipeline.currentState,
+      flights: List.of(_pipeline.flights),
+      currentDistance: _pipeline.currentDistance,
+      currentDuration: _pipeline.currentDuration,
+    );
+  } // конец метода updateLocation
+
+  // Новое: Метод для репроцессинга при прыжках во времени (от слушателя seekCount)
+  void reprocessFromStart() {
+    _pipeline.reset();
     
-    if (isSimulator) {
-      final currentIndex = _getCurrentIndex();
-      // Считаем скачком только изменение индекса больше чем на 1 (это происходит при ручной перемотке симулятора)
-      if (_lastIndex != null && (currentIndex - _lastIndex!).abs() > 1) {
-        isJump = true;
+    final allPoints = _getPoints();
+    final currentIndex = _getCurrentIndex();
+    
+    if (allPoints.isNotEmpty && currentIndex >= 0 && currentIndex < allPoints.length) {
+      for (int i = 0; i <= currentIndex; i++) {
+        _pipeline.processLocation(allPoints[i], currentWind: null, useCalculatedSpeed: true); // В симуляторе используем рассчитанную скорость
       }
-      _lastIndex = currentIndex;
-    } else {
-      // Для реального GPS скачки во времени (прореживание, потеря сигнала) - это норма.
-      // Состояние State Machine никогда не должно сбрасываться из-за них.
-      isJump = false;
     }
 
-    if (isJump) {
-      // При перемотке сбрасываем и пересобираем состояние
-      _pipeline.reset();
-      
-      if (isSimulator) {
-        final allPoints = _getPoints();
-        final currentIndex = _getCurrentIndex();
-        
-        if (allPoints.isNotEmpty && currentIndex >= 0 && currentIndex < allPoints.length) {
-          for (int i = 0; i <= currentIndex; i++) {
-            _pipeline.processLocation(allPoints[i], currentWind: null, useCalculatedSpeed: true); // В симуляторе используем рассчитанную скорость
-          }
-        }
-      }
-
-      state = FlightDetectorState(
-        state: _pipeline.currentState,
-        flights: List.of(_pipeline.flights),
-        currentDistance: _pipeline.currentDistance,
-        currentDuration: _pipeline.currentDuration,
-      );
-    } else {
-      _pipeline.processLocation(location, currentWind: currentWind, useCalculatedSpeed: useCalculatedSpeed);
-      state = FlightDetectorState(
-        state: _pipeline.currentState,
-        flights: List.of(_pipeline.flights),
-        currentDistance: _pipeline.currentDistance,
-        currentDuration: _pipeline.currentDuration,
-      );
-    } // конец if-else
-  } // конец метода updateLocation
+    state = FlightDetectorState(
+      state: _pipeline.currentState,
+      flights: List.of(_pipeline.flights),
+      currentDistance: _pipeline.currentDistance,
+      currentDuration: _pipeline.currentDuration,
+    );
+  } // конец метода reprocessFromStart
 
   void clear() {
     _pipeline.reset();
-    _lastIndex = null;
     state = const FlightDetectorState();
   } // конец метода clear
 } // конец класса FlightDetectorNotifier
@@ -118,7 +101,7 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
     getCurrentIndex: () => ref.read(playbackProvider).currentIndex,
   );
 
-ref.listen(locationProvider, (previous, asyncLocation) {
+  ref.listen(locationProvider, (previous, asyncLocation) {
     final location = asyncLocation.valueOrNull;
     if (location != null) {
       final dataSource = ref.read(dataSourceProvider);
@@ -130,12 +113,12 @@ ref.listen(locationProvider, (previous, asyncLocation) {
 
       notifier.updateLocation(
         location,
-        dataSource == DataSource.simulator, // Флаг isSimulator нужен для правильной обработки прыжков во времени (Rewind)
         currentWind,
         useCalculatedSpeed: useMath,
       );
     }
   });
+
   ref.listen(dataSourceProvider, (previous, next) {
     if (previous != next) {
       notifier.clear();
@@ -146,6 +129,15 @@ ref.listen(locationProvider, (previous, asyncLocation) {
   ref.listen(gpxPointsProvider, (previous, next) {
     notifier.clear();
     ref.read(telemetryProvider.notifier).clear();
+  });
+
+  // Новое: Слушаем централизованный сигнал перемотки (DRY)
+  ref.listen(playbackProvider.select((s) => s.seekCount), (previous, current) {
+    if (previous != null && current != previous) {
+      if (ref.read(dataSourceProvider) == DataSource.simulator) {
+        notifier.reprocessFromStart();
+      }
+    }
   });
 
   return notifier;

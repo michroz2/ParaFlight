@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    playback_notifier.dart
 // Проект:  ParaFlight
-// Версия:  0.6.0
+// Версия:  0.6.1
 // Цель:    Контроллер воспроизведения симуляции
 // Изменения:
 //   0.6.0 - Первичная реализация
+//   0.6.1 - Добавлен инкремент seekCount при init и seek
 // =============================================================================
 
 import 'dart:async';
@@ -36,6 +37,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
         currentDuration: Duration.zero,
         isPlaying: false,
         hasStarted: false,
+        seekCount: state.seekCount + 1, // Новое: Сигнал слушателям о старте/перемотке
       );
     } // конец if
   } // конец метода init
@@ -75,6 +77,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       currentLocation: _points[_currentIndex],
       currentIndex: _currentIndex,
       currentDuration: currentDuration,
+      seekCount: state.seekCount + 1, // Новое: Сигнал слушателям о перемотке
     );
     if (state.isPlaying) {
       _playNext();
