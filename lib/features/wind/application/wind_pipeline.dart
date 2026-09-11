@@ -1,13 +1,14 @@
 // =============================================================================
 // Файл:    wind_pipeline.dart
 // Проект:  ParaFlight
-// Версия:  1.20.4
+// Версия:  1.20.5
 // Цель:    Конвейер вычисления ветра (буферизация и запуск)
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 //   1.20.3 - Проброс угла в математическое ядро
 //   1.20.4 - Добавлены геттеры bufferSize и currentBufferAngle
+//   1.20.5 - Перенос валидации из математического ядра в конвейер
 // =============================================================================
 
 import 'dart:math';
@@ -90,7 +91,7 @@ class WindPipeline {
     _buffer.removeWhere((p) => p.timestamp.isBefore(cutoffTime));
 
 // 4. ЭШЕЛОН 1 и 2: Проверка рабочего буфера (Без стирания!)
-    if (_buffer.length < 5) return null; // Изменение: Не накоплен минимум точек. Ждем.
+    if (_buffer.length < 20) return null; // Изменение: Не накоплен минимум точек. Ждем.
 
     double maxDelta = 0;
     for (int i = 0; i < _buffer.length; i++) {
@@ -111,26 +112,26 @@ class WindPipeline {
 
     // 5. Вычисление ветра через математическое ядро
     // Изменение: Передаем maxDelta как bufferAngle
-    final result = CircleKasaFit.fit(_buffer, maxDelta, minRoundness: config.minRoundness);
+    final result = CircleKasaFit.fit(_buffer, maxDelta);
 
     // 6. ЭШЕЛОН 3: Валидация физики и Умное Стирание (Smart Flush)
     if (result == null) {
-      // Новое: Рабочий буфер собран (угол достаточен), но ядро забраковало форму (Roundness).
-      // Это искажение от акселератора. Стираем яд!
-      _buffer.clear();
+      // Это происходит только если детерминант близок к нулю (идеальная прямая, что маловероятно после фильтров).
       return null;
     }
 
     // Новое: Проверяем физику и качество
     final bool isAirspeedValid = result.airspeed >= config.minAirspeedMs && result.airspeed <= config.maxAirspeedMs;
     final bool isRmseValid = result.rmse <= config.maxRmseMs;
+    final bool isRoundnessValid = result.roundness >= config.minRoundness;
 
-    if (isAirspeedValid && isRmseValid) {
-      return result; // Всё идеально! Отдаем свежий ветер.
+    if (isAirspeedValid && isRmseValid && isRoundnessValid) {
+      return result; // Всё идеально! Отдаем свежий ветер (isValid: true по умолчанию).
     } else {
-      // Новое: Окружность найдена, но скорость или погрешность запредельные. Стираем яд!
+      // Новое: Окружность найдена, но данные забракованы.
+      // Стираем яд, но возвращаем посчитанный результат с флагом isValid = false для прозрачности в UI!
       _buffer.clear();
-      return null;
+      return result.copyWith(isValid: false);
     }
   }
 }

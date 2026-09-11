@@ -1,13 +1,14 @@
 // =============================================================================
 // Файл:    wind_models.dart
 // Проект:  ParaFlight
-// Версия:  1.20.4
+// Версия:  1.20.5
 // Цель:    Модели данных для модуля ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Добавлен флаг устаревших данных (когда буфер промывается от яда)
 //   1.20.3 - Добавлены параметры буфера: bufferSize и bufferAngle
 //   1.20.4 - Внедрен класс WindState для хранения состояния буфера
+//   1.20.5 - Замена isStale на isValid
 // =============================================================================
 
 class WindDataPoint {
@@ -46,8 +47,8 @@ class WindCalculationResult {
   final int bufferSize;
   final double bufferAngle;
 
-  // Новое: Флаг устаревших данных (когда буфер промывается от яда)
-  final bool isStale;
+  // Изменение: Флаг валидности (успешности прохождения всех проверок)
+  final bool isValid;
 
   const WindCalculationResult({
     required this.windSpeed,
@@ -58,7 +59,7 @@ class WindCalculationResult {
     required this.timestamp,
     required this.bufferSize, // Новое
     required this.bufferAngle, // Новое
-    this.isStale = false, 
+    this.isValid = true, 
   });
 
   // Новое: Метод copyWith для безопасного обновления состояния
@@ -71,7 +72,7 @@ class WindCalculationResult {
     DateTime? timestamp,
     int? bufferSize, // Новое
     double? bufferAngle, // Новое
-    bool? isStale,
+    bool? isValid,
   }) {
     return WindCalculationResult(
       windSpeed: windSpeed ?? this.windSpeed,
@@ -82,7 +83,7 @@ class WindCalculationResult {
       timestamp: timestamp ?? this.timestamp,
       bufferSize: bufferSize ?? this.bufferSize, // Новое
       bufferAngle: bufferAngle ?? this.bufferAngle, // Новое
-      isStale: isStale ?? this.isStale,
+      isValid: isValid ?? this.isValid,
     );
   } // конец метода copyWith
 } // конец класса WindCalculationResult

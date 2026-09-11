@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    wind_circle_painter.dart
 // Проект:  ParaFlight
-// Версия:  1.20.2
+// Версия:  1.20.5
 // Цель:    Отрисовка круга ветра с радарным масштабом
 // Изменения:
 //   0.1.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
+//   1.20.5 - Переименовано isStale в isValid и инвертирована логика цвета
 // =============================================================================
 
 import 'dart:math';
@@ -18,7 +19,7 @@ class WindCirclePainter extends CustomPainter {
   final double diameter;
   final String scaleText;
   final bool showNorthPointer;
-  final bool isStale; // Новое
+  final bool isValid; // Изменение
 
   WindCirclePainter({
     required this.windDirection,
@@ -27,7 +28,7 @@ class WindCirclePainter extends CustomPainter {
     required this.diameter,
     required this.scaleText,
     required this.showNorthPointer,
-    required this.isStale,
+    required this.isValid,
   });
 
   @override
@@ -175,8 +176,8 @@ class WindCirclePainter extends CustomPainter {
         ..lineTo(p2X, p2Y)
         ..close();
 
-      // Изменение: Цвет зависит от свежести данных
-      canvas.drawPath(arrowPath, Paint()..color = isStale ? Colors.grey : Colors.blueAccent);
+      // Изменение: Цвет зависит от валидности данных (!isValid делает серым)
+      canvas.drawPath(arrowPath, Paint()..color = !isValid ? Colors.grey : Colors.blueAccent);
 
       // 5. Отрисовка лэйбла ветра
       final textStr = windSpeed!.toStringAsFixed(1);
@@ -200,10 +201,10 @@ class WindCirclePainter extends CustomPainter {
         height: textPainter.height + 4,
       );
 
-      // Изменение: Цвет подложки текста зависит от свежести данных
+      // Изменение: Цвет подложки текста зависит от валидности данных (!isValid делает серым)
       canvas.drawRRect(
         RRect.fromRectAndRadius(textRect, const Radius.circular(6.0)),
-        Paint()..color = isStale ? Colors.grey.withAlpha(200) : const Color(0xCC333333),
+        Paint()..color = !isValid ? Colors.grey.withAlpha(200) : const Color(0xCC333333),
       );
 
       textPainter.paint(
@@ -219,6 +220,7 @@ class WindCirclePainter extends CustomPainter {
            oldDelegate.windSpeed != windSpeed ||
            oldDelegate.mapRotation != mapRotation ||
            oldDelegate.diameter != diameter ||
+           oldDelegate.isValid != isValid || // Изменение
            oldDelegate.scaleText != scaleText;
   } // конец метода shouldRepaint
 } // конец класса WindCirclePainter

@@ -724,10 +724,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         // Новое: Живые данные буфера
                         Text(
                           'N=${windState.bufferSize}, ∟=${windState.bufferAngle.toStringAsFixed(0)}°',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                          ),
                         ),
                       ],
                     ),

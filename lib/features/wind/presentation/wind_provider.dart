@@ -1,12 +1,13 @@
 // =============================================================================
 // Файл:    wind_provider.dart
 // Проект:  ParaFlight
-// Версия:  1.20.4
+// Версия:  1.20.5
 // Цель:    Провайдер ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 //   1.20.4 - Замена состояния на WindState
+//   1.20.5 - Замена isStale на isValid
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,10 +125,10 @@ class WindNotifier extends StateNotifier<WindState> {
       WindCalculationResult? nextResult = state.result;
 
       if (result != null) {
-        nextResult = result; // Свежие данные
+        nextResult = result; // Свежие данные (могут быть как валидными, так и забракованными)
       } else {
-        if (nextResult != null && !nextResult.isStale) {
-          nextResult = nextResult.copyWith(isStale: true); // Помечаем как устаревшие, если буфер смыт или летим прямо
+        if (nextResult != null && nextResult.isValid) {
+          nextResult = nextResult.copyWith(isValid: false); // Помечаем как невалидные, если буфер смыт или летим прямо
         }
       }
 
