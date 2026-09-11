@@ -76,9 +76,10 @@ class WindNotifier extends StateNotifier<WindState> {
     _pipeline.reset();
     
     // Защита телеметрии: оставляем цифры, но делаем их серыми
-    if (state.result != null) {
+    if (state.telemetryResult != null || state.mapResult != null) {
       state = WindState(
-        result: state.result?.copyWith(isValid: false),
+        mapResult: state.mapResult?.copyWith(isValid: false),
+        telemetryResult: state.telemetryResult?.copyWith(isValid: false),
         bufferSize: 0,
         bufferAngle: 0.0,
       );
@@ -93,20 +94,33 @@ class WindNotifier extends StateNotifier<WindState> {
     required double heading,
   }) {
     // Делегируем в конвейер (вся логика определения скачков удалена - Separation of Concerns)
-    final result = _pipeline.processLocation(timestamp, speed, heading);
-    WindCalculationResult? nextResult = state.result;
+    final latestResult = _pipeline.processLocation(timestamp, speed, heading);
+    
+    WindCalculationResult? newMapResult = state.mapResult;
+    WindCalculationResult? newTelemetryResult = state.telemetryResult;
 
-    if (result != null) {
-      nextResult = result; // Свежие данные (могут быть как валидными, так и забракованными)
-    } else {
-      if (nextResult != null && nextResult.isValid) {
-        nextResult = nextResult.copyWith(isValid: false); // Помечаем как невалидные, если буфер смыт или летим прямо
+    if (latestResult != null) {
+      newTelemetryResult = latestResult; // Телеметрия всегда получает свежую математику
+      
+      if (latestResult.isValid) {
+        newMapResult = latestResult; // Карта получает свежую стрелку
+      } else {
+        // Пришел яд: телеметрия покажет его, а карта оставит старую стрелку серой
+        newMapResult = state.mapResult?.copyWith(isValid: false);
       }
+    } else {
+       // Пропуск такта (прямая линия)
+       if (newMapResult != null && newMapResult.isValid) {
+         newMapResult = newMapResult.copyWith(isValid: false); // Помечаем как невалидные, если буфер смыт или летим прямо
+       }
+       if (newTelemetryResult != null && newTelemetryResult.isValid) {
+         newTelemetryResult = newTelemetryResult.copyWith(isValid: false);
+       }
     }
 
-    // Сохраняем и результат (если есть), и живые данные буфера
     state = WindState(
-      result: nextResult,
+      mapResult: newMapResult,
+      telemetryResult: newTelemetryResult,
       bufferSize: _pipeline.bufferSize,
       bufferAngle: _pipeline.currentBufferAngle,
     );

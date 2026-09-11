@@ -105,7 +105,7 @@ final StateNotifierProvider<FlightDetectorNotifier, FlightDetectorState> flightD
     final location = asyncLocation.valueOrNull;
     if (location != null) {
       final dataSource = ref.read(dataSourceProvider);
-      final currentWind = ref.read(windProvider).result;
+      final currentWind = ref.read(windProvider).mapResult;
       
       // Вычисляем математическую скорость всегда для симулятора, 
       // а для встроенного GPS - только если включен тумблер "Данные эмулятора"

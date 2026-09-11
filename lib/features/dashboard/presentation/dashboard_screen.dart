@@ -316,7 +316,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final isPreviewVisible = _userPreviewToggle ?? !playbackState.hasStarted;
 
     final windState = ref.watch(windProvider);
-    final wind = windState.result;
+    final wind = windState.telemetryResult;
     final windConfig = ref.watch(windConfigProvider);
 
     ref.listen(playbackProvider, (previous, next) {

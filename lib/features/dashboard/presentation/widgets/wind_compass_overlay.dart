@@ -36,7 +36,7 @@ class WindCompassOverlay extends ConsumerWidget {
     final screenSize = MediaQuery.of(context).size;
     final asyncLocation = ref.watch(locationProvider);
     final currentLocation = asyncLocation.valueOrNull;
-    final wind = ref.watch(windProvider).result;
+    final wind = ref.watch(windProvider).mapResult;
     final flightState = ref.watch(flightDetectorProvider).state;
     final windConfig = ref.watch(windConfigProvider); // Новое: Читаем конфиг ветра
     final mapSettings = ref.watch(mapSettingsProvider);

@@ -90,12 +90,14 @@ class WindCalculationResult {
 
 // Новое: Комплексное состояние модуля ветра
 class WindState {
-  final WindCalculationResult? result;
+  final WindCalculationResult? mapResult;       // Для стрелки компаса (только валидные или старые серые)
+  final WindCalculationResult? telemetryResult; // Для дебаг-окна (всё подряд, включая свежий яд)
   final int bufferSize;
   final double bufferAngle;
 
   const WindState({
-    this.result,
+    this.mapResult,
+    this.telemetryResult,
     this.bufferSize = 0,
     this.bufferAngle = 0.0,
   });

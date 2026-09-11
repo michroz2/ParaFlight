@@ -138,8 +138,11 @@ class WindPipeline {
       return result; // Всё идеально! Отдаем свежий ветер (isValid: true по умолчанию).
     } else {
       // Новое: Окружность найдена, но данные забракованы.
-      // Стираем яд, но возвращаем посчитанный результат с флагом isValid = false для прозрачности в UI!
-      _buffer.clear();
+      // Изменение: Аэродинамическая промывка (удаляем половину самых старых точек)
+      if (_buffer.isNotEmpty) {
+        final half = _buffer.length ~/ 2;
+        _buffer.removeRange(0, half);
+      }
       return result.copyWith(isValid: false);
     }
   }
