@@ -35,6 +35,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       minRoundness: prefs.getDouble('minRoundness') ?? 0.5, // Новое
       maxRmseMs: prefs.getDouble('maxRmseMs') ?? 1.5, // Новое
       minBufferPoints: prefs.getInt('minBufferPoints') ?? 20, // Новое
+      windEmaAlpha: prefs.getDouble('windEmaAlpha') ?? 0.2, // Новое
     );
   }
 
@@ -51,6 +52,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     double? minRoundness, // Новое
     double? maxRmseMs, // Новое
     int? minBufferPoints, // Новое
+    double? windEmaAlpha, // Новое
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
     
@@ -66,6 +68,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     if (minRoundness != null) await prefs.setDouble('minRoundness', minRoundness); // Новое
     if (maxRmseMs != null) await prefs.setDouble('maxRmseMs', maxRmseMs); // Новое
     if (minBufferPoints != null) await prefs.setInt('minBufferPoints', minBufferPoints); // Новое
+    if (windEmaAlpha != null) await prefs.setDouble('windEmaAlpha', windEmaAlpha); // Новое
 
     state = state.copyWith(
       windowSizeSec: windowSizeSec,
@@ -80,6 +83,7 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       minRoundness: minRoundness, // Новое
       maxRmseMs: maxRmseMs, // Новое
       minBufferPoints: minBufferPoints, // Новое
+      windEmaAlpha: windEmaAlpha, // Новое
     );
   }
 } // конец класса WindConfigNotifier

@@ -14,6 +14,7 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:math' as math;
 import '../../../core/location/location_state.dart';
 import '../domain/wind_models.dart';
 import '../application/wind_pipeline.dart'; // Восстановленный импорт
@@ -60,6 +61,8 @@ final StateNotifierProvider<WindNotifier, WindState> windProvider = StateNotifie
 
 class WindNotifier extends StateNotifier<WindState> {
   final WindPipeline _pipeline;
+  double? _smoothedWx;
+  double? _smoothedWy;
 
   WindNotifier({
     required WindPipeline pipeline,
@@ -68,12 +71,16 @@ class WindNotifier extends StateNotifier<WindState> {
 
   void clear() {
     _pipeline.reset();
+    _smoothedWx = null;
+    _smoothedWy = null;
     state = const WindState();
   } // конец метода clear
 
   // Новое: Инкапсулированный метод для централизованного сброса
   void forceReset() {
     _pipeline.reset();
+    _smoothedWx = null;
+    _smoothedWy = null;
     
     // Защита телеметрии: оставляем цифры, но делаем их серыми
     if (state.telemetryResult != null || state.mapResult != null) {
@@ -104,8 +111,35 @@ class WindNotifier extends StateNotifier<WindState> {
       newTelemetry = latestResult; 
       
       if (latestResult.isValid) {
-        // Расчет идеален - обновляем стрелку компаса
-        newMap = latestResult; 
+        // 1. Конвертируем полярные координаты в декартовы
+        // (Угол в радианах, Север = 0)
+        final double dirRad = latestResult.windDirection * (math.pi / 180.0);
+        final double rawWx = latestResult.windSpeed * math.sin(dirRad);
+        final double rawWy = latestResult.windSpeed * math.cos(dirRad);
+
+        // 2. Применяем EMA-фильтр
+        if (state.mapResult == null || !state.mapResult!.isValid || _smoothedWx == null || _smoothedWy == null) {
+          // Если предыдущий ветер был невалидным, сбрасываем фильтр (моментальный щелчок)
+          _smoothedWx = rawWx;
+          _smoothedWy = rawWy;
+        } else {
+          // Плавно сглаживаем новые значения
+          final alpha = _pipeline.config.windEmaAlpha;
+          _smoothedWx = alpha * rawWx + (1.0 - alpha) * _smoothedWx!;
+          _smoothedWy = alpha * rawWy + (1.0 - alpha) * _smoothedWy!;
+        }
+
+        // 3. Конвертируем обратно в полярные координаты
+        final double smoothedSpeed = math.sqrt(_smoothedWx! * _smoothedWx! + _smoothedWy! * _smoothedWy!);
+        // Функция atan2(x, y) для отсчета угла от оси Y (Север) по часовой стрелке
+        double smoothedDir = math.atan2(_smoothedWx!, _smoothedWy!) * (180.0 / math.pi);
+        if (smoothedDir < 0) smoothedDir += 360.0;
+
+        // 4. Обновляем карту сглаженными значениями (остальные параметры типа RMSE берем из сырого)
+        newMap = latestResult.copyWith(
+          windSpeed: smoothedSpeed,
+          windDirection: smoothedDir,
+        );
       } else {
         // ВАЛИДАТОР ЗАБРАКОВАЛ РАСЧЕТ:
         // Компас сохраняет старое направление, но стрелка мгновенно становится серой

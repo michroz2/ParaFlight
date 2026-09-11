@@ -48,6 +48,9 @@ class WindConfig {
   /// Новое: Минимальное количество точек в буфере
   final int minBufferPoints;
 
+  /// Новое: Коэффициент EMA сглаживания вектора ветра (0.0..1.0)
+  final double windEmaAlpha;
+
   const WindConfig({
     this.windowSizeSec = 120.0,
     this.minTurnAngleDeg = 30.0,
@@ -61,6 +64,7 @@ class WindConfig {
     this.enableWindOverlay = false,
     this.maxRmseMs = 1.5, // Изменение: 2.0 -> 1.5
     this.minBufferPoints = 20, // Новое
+    this.windEmaAlpha = 0.2, // Новое
   });
 
   WindConfig copyWith({
@@ -76,6 +80,7 @@ class WindConfig {
     bool? enableWindOverlay,
     double? maxRmseMs,
     int? minBufferPoints, // Новое
+    double? windEmaAlpha, // Новое
   }) {
     return WindConfig(
       windowSizeSec: windowSizeSec ?? this.windowSizeSec,
@@ -90,6 +95,7 @@ class WindConfig {
       enableWindOverlay: enableWindOverlay ?? this.enableWindOverlay,
       maxRmseMs: maxRmseMs ?? this.maxRmseMs,
       minBufferPoints: minBufferPoints ?? this.minBufferPoints, // Новое
+      windEmaAlpha: windEmaAlpha ?? this.windEmaAlpha, // Новое
     );
   }
 }

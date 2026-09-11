@@ -40,6 +40,21 @@ class WindSettingsScreen extends ConsumerWidget {
             value: config.enableWindOverlay,
             onChanged: (value) => notifier.updateConfig(enableWindOverlay: value),
           ),
+          ListTile(
+            title: const Text('Инерция прибора (EMA)'),
+            subtitle: Text('${config.windEmaAlpha.toStringAsFixed(1)} (Плавнее <-> Без фильтра)'),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.windEmaAlpha,
+                min: 0.2,
+                max: 1.0,
+                divisions: 8,
+                label: config.windEmaAlpha.toStringAsFixed(1),
+                onChanged: (value) => notifier.updateConfig(windEmaAlpha: value),
+              ),
+            ),
+          ),
           const Divider(),
           const Text('Анализ трека', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 8),
