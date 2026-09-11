@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    dashboard_screen.dart
 // Проект:  ParaFlight
-// Версия:  1.18.10
+// Версия:  1.18.11
 // Цель:    Главный экран с линейными контролами и умным компасом ветра
 // Изменения:
 //   0.7.0 - Добавлены линейные контролы и умный компас ветра
 //   1.18.10 - Вывод параметров буфера ветра (bufferSize и bufferAngle)
+//   1.18.11 - Цветовая индикация параметров валидации ветра в телеметрии
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -668,64 +669,74 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       horizontal: 16.0,
                       vertical: 8.0,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    child: Builder( // Используем Builder, чтобы вычислять переменные перед отрисовкой Column
+                      builder: (context) {
+                        final bool isAirspeedBad = wind != null && (wind.airspeed < windConfig.minAirspeedMs || wind.airspeed > windConfig.maxAirspeedMs);
+                        final bool isRmseBad = wind != null && wind.rmse > windConfig.maxRmseMs;
+                        final bool isRoundnessBad = wind != null && wind.roundness < windConfig.minRoundness;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.air, size: 16, color: Colors.blue),
-                            const SizedBox(width: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.air, size: 16, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Ветер: ${wind?.windSpeed.toStringAsFixed(1) ?? '--.-'} м/с',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Transform.rotate(
+                                  angle: ((wind?.windDirection ?? 0.0) + 180) * pi / 180.0,
+                                  child: const Icon(
+                                    Icons.arrow_upward,
+                                    size: 16,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Направление: ${wind?.windDirection.toStringAsFixed(0) ?? '---'}°',
+                                ),
+                              ],
+                            ),
+                            if (currentLocation != null)
+                              Text(
+                                'SOG: ${currentLocation.speed.toStringAsFixed(1)} м/с',
+                              ),
                             Text(
-                              'Ветер: ${wind?.windSpeed.toStringAsFixed(1) ?? '--.-'} м/с',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                              'Airspeed: ${wind?.airspeed.toStringAsFixed(1) ?? '--.-'} м/с',
+                              style: TextStyle(
+                                color: isAirspeedBad ? Colors.red : null,
                               ),
                             ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Transform.rotate(
-                              angle: ((wind?.windDirection ?? 0.0) + 180) * pi / 180.0,
-                              child: const Icon(
-                                Icons.arrow_upward,
-                                size: 16,
-                                color: Colors.blue,
+                            Text(
+                              'RMSE: ${wind?.rmse.toStringAsFixed(2) ?? '--.--'} м/с',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isRmseBad ? Colors.red : null,
                               ),
                             ),
-                            const SizedBox(width: 8),
                             Text(
-                              'Направление: ${wind?.windDirection.toStringAsFixed(0) ?? '---'}°',
+                              'Round: ${wind?.roundness.toStringAsFixed(2) ?? '--.--'}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isRoundnessBad ? Colors.red : null,
+                              ),
+                            ),
+                            // Новое: Живые данные буфера
+                            Text(
+                              'N=${windState.bufferSize}, ∟=${windState.bufferAngle.toStringAsFixed(0)}°',
                             ),
                           ],
-                        ),
-                        if (currentLocation != null)
-                        Text(
-                          'SOG: ${currentLocation.speed.toStringAsFixed(1)} м/с',
-                          // style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Airspeed: ${wind?.airspeed.toStringAsFixed(1) ?? '--.-'} м/с',
-                        ),
-                        Text(
-                          'RMSE: ${wind?.rmse.toStringAsFixed(2) ?? '--.--'} м/с',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.red,
-                          ),
-                        ),
-                        Text(
-                          'Round: ${wind?.roundness.toStringAsFixed(2) ?? '--.--'}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        // Новое: Живые данные буфера
-                        Text(
-                          'N=${windState.bufferSize}, ∟=${windState.bufferAngle.toStringAsFixed(0)}°',
-                        ),
-                      ],
+                        );
+                      }
                     ),
                   ),
                 ),
