@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    playback_notifier.dart
 // Проект:  ParaFlight
-// Версия:  0.6.1
+// Версия:  0.6.2
 // Цель:    Контроллер воспроизведения симуляции
 // Изменения:
 //   0.6.0 - Первичная реализация
 //   0.6.1 - Добавлен инкремент seekCount при init и seek
+//   0.6.2 - Логика автоматического перезапуска трека после завершения
 // =============================================================================
 
 import 'dart:async';
@@ -43,6 +44,15 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
   } // конец метода init
 
   void togglePlay() {
+    // Новое: Если трек дошел до конца, сбрасываем в начало перед запуском
+    if (_currentIndex >= _points.length - 1) {
+      _currentIndex = 0;
+      state = state.copyWith(
+        progress: 0.0,
+        seekCount: state.seekCount + 1, // Новое: отправляем сигнал о перемотке в начало
+      );
+    }
+    
     state = state.copyWith(
       isPlaying: !state.isPlaying,
       hasStarted: true,

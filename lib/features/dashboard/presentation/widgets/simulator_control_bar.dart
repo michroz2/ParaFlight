@@ -1,8 +1,11 @@
 // =============================================================================
 // Файл:    simulator_control_bar.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  0.1.1
 // Цель:    Изолированная панель управления плеером симулятора
+// Изменения:
+//   0.1.0 - Первичная реализация
+//   0.1.1 - Кнопка Replay при окончании симуляции
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -59,7 +62,10 @@ class SimulatorControlBar extends ConsumerWidget {
               InkWell(
                 onTap: () => playbackNotifier.togglePlay(),
                 child: Icon(
-                  playbackState.isPlaying ? Icons.pause : Icons.play_arrow,
+                  // Изменение: Показываем Replay, если трек закончен
+                  playbackState.progress >= 1.0 
+                      ? Icons.replay 
+                      : (playbackState.isPlaying ? Icons.pause : Icons.play_arrow),
                   color: Colors.white,
                   size: 32,
                 ),
