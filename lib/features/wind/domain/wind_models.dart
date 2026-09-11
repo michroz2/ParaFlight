@@ -1,12 +1,13 @@
 // =============================================================================
 // Файл:    wind_models.dart
 // Проект:  ParaFlight
-// Версия:  1.20.3
+// Версия:  1.20.4
 // Цель:    Модели данных для модуля ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Добавлен флаг устаревших данных (когда буфер промывается от яда)
 //   1.20.3 - Добавлены параметры буфера: bufferSize и bufferAngle
+//   1.20.4 - Внедрен класс WindState для хранения состояния буфера
 // =============================================================================
 
 class WindDataPoint {
@@ -85,3 +86,16 @@ class WindCalculationResult {
     );
   } // конец метода copyWith
 } // конец класса WindCalculationResult
+
+// Новое: Комплексное состояние модуля ветра
+class WindState {
+  final WindCalculationResult? result;
+  final int bufferSize;
+  final double bufferAngle;
+
+  const WindState({
+    this.result,
+    this.bufferSize = 0,
+    this.bufferAngle = 0.0,
+  });
+} // конец класса WindState

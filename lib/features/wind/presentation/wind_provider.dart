@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    wind_provider.dart
 // Проект:  ParaFlight
-// Версия:  1.20.2
+// Версия:  1.20.4
 // Цель:    Провайдер ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
+//   1.20.4 - Замена состояния на WindState
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +17,7 @@ import '../application/wind_pipeline.dart'; // Восстановленный и
 
 import '../../settings/application/wind_config_provider.dart';
 
-final StateNotifierProvider<WindNotifier, WindCalculationResult?> windProvider = StateNotifierProvider<WindNotifier, WindCalculationResult?>((ref) {
+final StateNotifierProvider<WindNotifier, WindState> windProvider = StateNotifierProvider<WindNotifier, WindState>((ref) {
   final config = ref.watch(windConfigProvider);
   final pipeline = WindPipeline(config: config);
   
@@ -52,7 +53,7 @@ final StateNotifierProvider<WindNotifier, WindCalculationResult?> windProvider =
   return notifier;
 });
 
-class WindNotifier extends StateNotifier<WindCalculationResult?> {
+class WindNotifier extends StateNotifier<WindState> {
   final WindPipeline _pipeline;
   final List<LocationEntity> Function() _getPoints;
   final int Function() _getCurrentIndex;
@@ -62,12 +63,12 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
     required this._pipeline,
     required this._getPoints,
     required this._getCurrentIndex,
-  })  : super(null);
+  })  : super(const WindState());
 
   void clear() {
     _pipeline.reset();
     _lastTimestamp = null;
-    state = null;
+    state = const WindState();
   } // конец метода clear
 
 // Изменение: Переменные _isPaused и _activeStartTime удалены
@@ -113,18 +114,29 @@ class WindNotifier extends StateNotifier<WindCalculationResult?> {
         }
       }
       
-      state = latestResult;
+      state = WindState(
+        result: latestResult,
+        bufferSize: _pipeline.bufferSize,
+        bufferAngle: _pipeline.currentBufferAngle,
+      );
     } else {
       final result = _pipeline.processLocation(timestamp, speed, heading);
+      WindCalculationResult? nextResult = state.result;
+
       if (result != null) {
-        state = result; // Изменение: Пришли свежие данные, state обновится (isStale = false)
+        nextResult = result; // Свежие данные
       } else {
-        // Новое: Конвейер вернул null (летим прямо ИЛИ буфер был стерт из-за яда).
-        // Если у нас уже был показан ветер, помечаем его как устаревший.
-        if (state != null && !state!.isStale) {
-          state = state!.copyWith(isStale: true);
+        if (nextResult != null && !nextResult.isStale) {
+          nextResult = nextResult.copyWith(isStale: true); // Помечаем как устаревшие, если буфер смыт или летим прямо
         }
       }
+
+      // Изменение: Сохраняем и результат (если есть), и живые данные буфера
+      state = WindState(
+        result: nextResult,
+        bufferSize: _pipeline.bufferSize,
+        bufferAngle: _pipeline.currentBufferAngle,
+      );
     } // конец if-else
   } // конец метода updateLocationWithLogic
 } // конец класса WindNotifier

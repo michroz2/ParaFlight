@@ -314,7 +314,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final playbackState = ref.watch(playbackProvider);
     final isPreviewVisible = _userPreviewToggle ?? !playbackState.hasStarted;
 
-    final wind = ref.watch(windProvider);
+    final windState = ref.watch(windProvider);
+    final wind = windState.result;
     final windConfig = ref.watch(windConfigProvider);
 
     ref.listen(playbackProvider, (previous, next) {
@@ -646,8 +647,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
             ),
             
-            // Изменение: Телеметрия теперь зависит только от тумблера и наличия данных
-            if (windConfig.enableWindOverlay && wind != null)
+            // Изменение: Телеметрия теперь зависит только от тумблера
+            if (windConfig.enableWindOverlay)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
@@ -675,7 +676,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             const Icon(Icons.air, size: 16, color: Colors.blue),
                             const SizedBox(width: 8),
                             Text(
-                              'Ветер: ${wind.windSpeed.toStringAsFixed(1)} м/с',
+                              'Ветер: ${wind?.windSpeed.toStringAsFixed(1) ?? '--.-'} м/с',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -685,7 +686,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         Row(
                           children: [
                             Transform.rotate(
-                              angle: (wind.windDirection + 180) * pi / 180.0,
+                              angle: ((wind?.windDirection ?? 0.0) + 180) * pi / 180.0,
                               child: const Icon(
                                 Icons.arrow_upward,
                                 size: 16,
@@ -694,7 +695,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Направление: ${wind.windDirection.toStringAsFixed(0)}°',
+                              'Направление: ${wind?.windDirection.toStringAsFixed(0) ?? '---'}°',
                             ),
                           ],
                         ),
@@ -704,25 +705,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           // style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'Airspeed: ${wind.airspeed.toStringAsFixed(1)} м/с',
+                          'Airspeed: ${wind?.airspeed.toStringAsFixed(1) ?? '--.-'} м/с',
                         ),
                         Text(
-                          'RMSE: ${wind.rmse.toStringAsFixed(2)} м/с',
+                          'RMSE: ${wind?.rmse.toStringAsFixed(2) ?? '--.--'} м/с',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.red,
                           ),
                         ),
                         Text(
-                          'Round: ${wind.roundness.toStringAsFixed(2)}',
+                          'Round: ${wind?.roundness.toStringAsFixed(2) ?? '--.--'}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.orange,
                           ),
                         ),
-                        // Новое: Данные буфера
+                        // Новое: Живые данные буфера
                         Text(
-                          'N=${wind.bufferSize}, ∟=${wind.bufferAngle.toStringAsFixed(0)}°',
+                          'N=${windState.bufferSize}, ∟=${windState.bufferAngle.toStringAsFixed(0)}°',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white70,

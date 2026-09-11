@@ -1,12 +1,13 @@
 // =============================================================================
 // Файл:    wind_pipeline.dart
 // Проект:  ParaFlight
-// Версия:  1.20.3
+// Версия:  1.20.4
 // Цель:    Конвейер вычисления ветра (буферизация и запуск)
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 //   1.20.3 - Проброс угла в математическое ядро
+//   1.20.4 - Добавлены геттеры bufferSize и currentBufferAngle
 // =============================================================================
 
 import 'dart:math';
@@ -18,6 +19,22 @@ class WindPipeline {
   final WindConfig config;
   final List<WindDataPoint> _buffer = [];
   DateTime? _lastSampleTime;
+
+  // Новое: Живые метрики буфера
+  int get bufferSize => _buffer.length;
+
+  double get currentBufferAngle {
+    if (_buffer.length < 2) return 0.0;
+    double maxDelta = 0.0;
+    for (int i = 0; i < _buffer.length; i++) {
+      for (int j = i + 1; j < _buffer.length; j++) {
+        double delta = (_buffer[i].cog - _buffer[j].cog).abs();
+        if (delta > 180.0) delta = 360.0 - delta;
+        if (delta > maxDelta) maxDelta = delta;
+      } // конец for j
+    } // конец for i
+    return maxDelta;
+  } // конец геттера currentBufferAngle
 
   WindPipeline({this.config = const WindConfig()});
 

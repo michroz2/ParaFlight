@@ -122,7 +122,7 @@ ref.listen(locationProvider, (previous, asyncLocation) {
     final location = asyncLocation.valueOrNull;
     if (location != null) {
       final dataSource = ref.read(dataSourceProvider);
-      final currentWind = ref.read(windProvider);
+      final currentWind = ref.read(windProvider).result;
       
       // Вычисляем математическую скорость всегда для симулятора, 
       // а для встроенного GPS - только если включен тумблер "Данные эмулятора"
