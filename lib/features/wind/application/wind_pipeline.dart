@@ -1,7 +1,7 @@
 // =============================================================================
 // Файл:    wind_pipeline.dart
 // Проект:  ParaFlight
-// Версия:  1.20.5
+// Версия:  1.20.8
 // Цель:    Конвейер вычисления ветра (буферизация и запуск)
 // Изменения:
 //   0.2.0 - Первичная реализация
@@ -9,6 +9,7 @@
 //   1.20.3 - Проброс угла в математическое ядро
 //   1.20.4 - Добавлены геттеры bufferSize и currentBufferAngle
 //   1.20.5 - Перенос валидации из математического ядра в конвейер
+//   1.20.8 - Использование minBufferPoints и умная защита буфера от истощения
 // =============================================================================
 
 import 'dart:math';
@@ -87,11 +88,19 @@ class WindPipeline {
     _buffer.add(point);
 
     // 3. Очистка старых данных из кольцевого буфера
+    // Изменение: Умная очистка буфера с защитой от истощения
     final cutoffTime = timestamp.subtract(Duration(milliseconds: (config.windowSizeSec * 1000).toInt()));
-    _buffer.removeWhere((p) => p.timestamp.isBefore(cutoffTime));
+    
+    while (_buffer.length > (config.minBufferPoints + 5)) {
+      if (_buffer.first.timestamp.isBefore(cutoffTime)) {
+        _buffer.removeAt(0);
+      } else {
+        break; // Старых точек больше нет
+      }
+    } // конец while
 
 // 4. ЭШЕЛОН 1 и 2: Проверка рабочего буфера (Без стирания!)
-    if (_buffer.length < 20) return null; // Изменение: Не накоплен минимум точек. Ждем.
+    if (_buffer.length < config.minBufferPoints) return null; // Изменение: Не накоплен минимум точек. Ждем.
 
     double maxDelta = 0;
     for (int i = 0; i < _buffer.length; i++) {

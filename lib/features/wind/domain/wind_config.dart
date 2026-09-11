@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    wind_config.dart
 // Проект:  ParaFlight
-// Версия:  1.20.2
+// Версия:  1.20.8
 // Цель:    Конфигурация модуля ветра
 // Изменения:
 //   0.2.0 - Первичная реализация
 //   1.20.2 - Добавлена максимальная ошибка фиттинга в м/с
+//   1.20.8 - Добавлен minBufferPoints, обновлены дефолтные значения (Roundness = 0.5, RMSE = 1.5)
 // =============================================================================
 
 class WindConfig {
@@ -35,14 +36,17 @@ class WindConfig {
   /// Минимальная круглость для отсева прямой линии на акселераторе
   final double minRoundness;
 
-  /// Новое: Автоматический показ стрелки ветра на радаре
+  /// Автоматический показ стрелки ветра на радаре
   final bool enableWindArrow;
   
   /// Автоматический показ дебаг окна телеметрии ветра
   final bool enableWindOverlay;
 
-  /// Новое: Максимально допустимая ошибка фиттинга в м/с
+  /// Максимально допустимая ошибка фиттинга в м/с
   final double maxRmseMs;
+  
+  /// Новое: Минимальное количество точек в буфере
+  final int minBufferPoints;
 
   const WindConfig({
     this.windowSizeSec = 120.0,
@@ -52,10 +56,11 @@ class WindConfig {
     this.sampleIntervalSec = 0.5,
     this.gpxSmoothingWindow = 2,
     this.minCogChangeDeg = 1.0,
-    this.minRoundness = 0.1,
-    this.enableWindArrow = true, // Новое
+    this.minRoundness = 0.5, // Изменение: 0.1 -> 0.5
+    this.enableWindArrow = true, 
     this.enableWindOverlay = false,
-    this.maxRmseMs = 2, // Новое
+    this.maxRmseMs = 1.5, // Изменение: 2.0 -> 1.5
+    this.minBufferPoints = 20, // Новое
   });
 
   WindConfig copyWith({
@@ -70,6 +75,7 @@ class WindConfig {
     bool? enableWindArrow,
     bool? enableWindOverlay,
     double? maxRmseMs,
+    int? minBufferPoints, // Новое
   }) {
     return WindConfig(
       windowSizeSec: windowSizeSec ?? this.windowSizeSec,
@@ -80,9 +86,10 @@ class WindConfig {
       gpxSmoothingWindow: gpxSmoothingWindow ?? this.gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg ?? this.minCogChangeDeg,
       minRoundness: minRoundness ?? this.minRoundness,
-      enableWindArrow: enableWindArrow ?? this.enableWindArrow, // Новое
+      enableWindArrow: enableWindArrow ?? this.enableWindArrow, 
       enableWindOverlay: enableWindOverlay ?? this.enableWindOverlay,
       maxRmseMs: maxRmseMs ?? this.maxRmseMs,
+      minBufferPoints: minBufferPoints ?? this.minBufferPoints, // Новое
     );
   }
 }

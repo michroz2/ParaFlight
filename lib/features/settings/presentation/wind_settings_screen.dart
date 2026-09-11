@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    wind_settings_screen.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  0.2.0
 // Цель:    Экран настроек параметров ветра
 // Изменения:
 //   0.1.0 - Первичная реализация
+//   0.2.0 - Добавлены ползунки для Roundness, RMSE и Min Buffer
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -93,7 +94,7 @@ class WindSettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          ListTile(
+        ListTile(
             title: const Text('Макс. скорость (м/с)'),
             subtitle: Text('${config.maxAirspeedMs.toStringAsFixed(1)} (~${(config.maxAirspeedMs * 3.6).toStringAsFixed(0)} км/ч)'),
             trailing: SizedBox(
@@ -108,8 +109,59 @@ class WindSettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+
+          // Новое: Секция настроек валидации
+          const Divider(height: 32),
+          const Text('Валидация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 8),
+
+          ListTile(
+            title: const Text('Индекс круглости (защита от прямой)'),
+            subtitle: Text(config.minRoundness.toStringAsFixed(1)),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.minRoundness,
+                min: 0.0,
+                max: 1.0,
+                divisions: 10,
+                label: config.minRoundness.toStringAsFixed(1),
+                onChanged: (value) => notifier.updateConfig(minRoundness: value),
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Макс. погрешность (RMSE)'),
+            subtitle: Text('${config.maxRmseMs.toStringAsFixed(1)} м/с'),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.maxRmseMs,
+                min: 0.5,
+                max: 3.0,
+                divisions: 25,
+                label: config.maxRmseMs.toStringAsFixed(1),
+                onChanged: (value) => notifier.updateConfig(maxRmseMs: value),
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Мин. размер буфера'),
+            subtitle: Text('${config.minBufferPoints} точек'),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                value: config.minBufferPoints.toDouble(),
+                min: 10.0,
+                max: 120.0,
+                divisions: 22,
+                label: config.minBufferPoints.toString(),
+                onChanged: (value) => notifier.updateConfig(minBufferPoints: value.toInt()),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-}
+} // конец класса WindSettingsScreen

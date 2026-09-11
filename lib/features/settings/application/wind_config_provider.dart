@@ -1,11 +1,12 @@
 // =============================================================================
 // Файл:    wind_config_provider.dart
 // Проект:  ParaFlight
-// Версия:  1.20.1
+// Версия:  1.20.8
 // Цель:    Провайдер конфигурации ветра
 // Изменения:
 //   0.1.0 - Первичная реализация
 //   1.20.1 - Добавлен параметр enableWindArrow
+//   1.20.8 - Добавлены minRoundness, maxRmseMs и minBufferPoints
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,8 +30,11 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: prefs.getDouble('sampleIntervalSec') ?? 0.5,
       gpxSmoothingWindow: prefs.getInt('gpxSmoothingWindow') ?? 2,
       minCogChangeDeg: prefs.getDouble('minCogChangeDeg') ?? 1.0,
-      enableWindArrow: prefs.getBool('enableWindArrow') ?? true, // Новое
+      enableWindArrow: prefs.getBool('enableWindArrow') ?? true,
       enableWindOverlay: prefs.getBool('enableWindOverlay') ?? false,
+      minRoundness: prefs.getDouble('minRoundness') ?? 0.5, // Новое
+      maxRmseMs: prefs.getDouble('maxRmseMs') ?? 1.5, // Новое
+      minBufferPoints: prefs.getInt('minBufferPoints') ?? 20, // Новое
     );
   }
 
@@ -44,6 +48,9 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     double? minCogChangeDeg,
     bool? enableWindArrow,
     bool? enableWindOverlay,
+    double? minRoundness, // Новое
+    double? maxRmseMs, // Новое
+    int? minBufferPoints, // Новое
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
     
@@ -54,8 +61,11 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     if (sampleIntervalSec != null) await prefs.setDouble('sampleIntervalSec', sampleIntervalSec);
     if (gpxSmoothingWindow != null) await prefs.setInt('gpxSmoothingWindow', gpxSmoothingWindow);
     if (minCogChangeDeg != null) await prefs.setDouble('minCogChangeDeg', minCogChangeDeg);
-    if (enableWindArrow != null) await prefs.setBool('enableWindArrow', enableWindArrow); // Новое
+    if (enableWindArrow != null) await prefs.setBool('enableWindArrow', enableWindArrow);
     if (enableWindOverlay != null) await prefs.setBool('enableWindOverlay', enableWindOverlay);
+    if (minRoundness != null) await prefs.setDouble('minRoundness', minRoundness); // Новое
+    if (maxRmseMs != null) await prefs.setDouble('maxRmseMs', maxRmseMs); // Новое
+    if (minBufferPoints != null) await prefs.setInt('minBufferPoints', minBufferPoints); // Новое
 
     state = state.copyWith(
       windowSizeSec: windowSizeSec,
@@ -65,8 +75,11 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
       sampleIntervalSec: sampleIntervalSec,
       gpxSmoothingWindow: gpxSmoothingWindow,
       minCogChangeDeg: minCogChangeDeg,
-      enableWindArrow: enableWindArrow, // Новое
+      enableWindArrow: enableWindArrow,
       enableWindOverlay: enableWindOverlay,
+      minRoundness: minRoundness, // Новое
+      maxRmseMs: maxRmseMs, // Новое
+      minBufferPoints: minBufferPoints, // Новое
     );
   }
 } // конец класса WindConfigNotifier
