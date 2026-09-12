@@ -20,22 +20,22 @@ class WindConfigNotifier extends StateNotifier<WindConfig> {
     _loadFromPrefs();
   }
 
-  void _loadFromPrefs() {
+    void _loadFromPrefs() {
     final prefs = ref.read(sharedPreferencesProvider);
     state = WindConfig(
-      windowSizeSec: prefs.getDouble('windowSizeSec') ?? 120.0,
+      windowSizeSec: prefs.getDouble('windowSizeSec') ?? 240.0,
       minTurnAngleDeg: prefs.getDouble('minTurnAngleDeg') ?? 30.0,
-      minAirspeedMs: prefs.getDouble('minAirspeedMs') ?? 5.55,
-      maxAirspeedMs: prefs.getDouble('maxAirspeedMs') ?? 19.44,
+      minAirspeedMs: prefs.getDouble('minAirspeedMs') ?? 9.0,
+      maxAirspeedMs: prefs.getDouble('maxAirspeedMs') ?? 15.0,
       sampleIntervalSec: prefs.getDouble('sampleIntervalSec') ?? 0.5,
       gpxSmoothingWindow: prefs.getInt('gpxSmoothingWindow') ?? 2,
       minCogChangeDeg: prefs.getDouble('minCogChangeDeg') ?? 1.0,
       enableWindArrow: prefs.getBool('enableWindArrow') ?? true,
       enableWindOverlay: prefs.getBool('enableWindOverlay') ?? false,
-      minRoundness: prefs.getDouble('minRoundness') ?? 0.5, // Новое
-      maxRmseMs: prefs.getDouble('maxRmseMs') ?? 1.5, // Новое
-      minBufferPoints: prefs.getInt('minBufferPoints') ?? 20, // Новое
-      windEmaAlpha: prefs.getDouble('windEmaAlpha') ?? 0.2, // Новое
+      minRoundness: prefs.getDouble('minRoundness') ?? 0.5,
+      maxRmseMs: prefs.getDouble('maxRmseMs') ?? 1.5,
+      minBufferPoints: prefs.getInt('minBufferPoints') ?? 30,
+      windEmaAlpha: prefs.getDouble('windEmaAlpha') ?? 0.2,
     );
   }
 

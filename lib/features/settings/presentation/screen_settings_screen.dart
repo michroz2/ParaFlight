@@ -66,8 +66,8 @@ class ScreenSettingsScreen extends ConsumerWidget {
             ),
           ),
           SwitchListTile(
-            title: const Text('Always ON (Не гасить экран)'),
-            subtitle: const Text('Запрещает дисплею выключаться в полете (Wakelock)'),
+            title: const Text('Постоянный дисплей'),
+            subtitle: const Text('Запрещает дисплею выключаться в полете'),
             value: isWakelockEnabled,
             onChanged: (val) {
               ref.read(wakelockProvider.notifier).toggle(val);
@@ -84,7 +84,7 @@ class ScreenSettingsScreen extends ConsumerWidget {
           ),
           // Новое: Тумблер Режима Кокпита
           SwitchListTile(
-            title: const Text('Режим Кокпита (Защита от случайного выхода)'),
+            title: const Text('Защита от случайного выхода'),
             subtitle: const Text('Блокирует системные жесты и кнопки. Работает только при Встроенном GPS'),
             value: isCockpitModeEnabled,
             onChanged: (val) {

@@ -248,7 +248,7 @@ class WindCirclePainter extends CustomPainter {
       canvas.drawPath(sArrowPath, Paint()..color = Colors.greenAccent);
 
       // Плашка с дистанцией (горизонтальная)
-      final sTextStr = '${startDistanceKm!.toStringAsFixed(1)}'; // 'км' здесь не нужны!
+      final sTextStr = startDistanceKm!.toStringAsFixed(1); // 'км' здесь не нужны!
       final sTextSpan = TextSpan(
         text: sTextStr,
         style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),

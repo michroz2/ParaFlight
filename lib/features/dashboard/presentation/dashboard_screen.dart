@@ -27,6 +27,7 @@ import '../../../core/telemetry_logger.dart';
 import '../../wind/presentation/wind_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/application/map_settings_provider.dart';
+import '../../settings/application/advanced_mode_provider.dart';
 import '../../settings/application/wind_config_provider.dart';
 import '../../settings/application/screen_settings_provider.dart'; // Новое: Импорт настроек экрана для режима Кокпита
 import '../../fuel/application/fuel_provider.dart';
@@ -56,6 +57,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool _isTrackingPilot = true;
   bool? _userPreviewToggle;
   Timer? _autoReturnTimer;
+
+  int _advancedTapCount = 0;
+  Timer? _advancedTapTimer;
 
   // Переменная для настройки скорости возврата карты на маркер самолёта (в миллисекундах)
   final int _mapReturnAnimationMs = 1000;
@@ -868,13 +872,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               loading: () => '',
                               error: (_, _) => '',
                             );
-                            return Text(
-                              'ParaFlight$versionText',
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
+                            return GestureDetector(
+                              onTap: () {
+                                final dataSource = ref.read(dataSourceProvider);
+                                if (dataSource == DataSource.simulator) {
+                                  _advancedTapCount++;
+                                  _advancedTapTimer?.cancel();
+                                  _advancedTapTimer = Timer(const Duration(seconds: 2), () {
+                                    _advancedTapCount = 0;
+                                  });
+                                  if (_advancedTapCount >= 7) {
+                                    _advancedTapCount = 0;
+                                    ref.read(advancedModeProvider.notifier).toggle();
+                                    final isAdvanced = ref.read(advancedModeProvider);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Расширенные настройки: ${isAdvanced ? 'ВКЛ' : 'ВЫКЛ'}')),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Text(
+                                'ParaFlight$versionText',
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
                               ),
                             );
                           },

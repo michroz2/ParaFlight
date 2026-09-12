@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/fuel_provider.dart';
+import '../../settings/application/advanced_mode_provider.dart';
 
 class FuelSettingsScreen extends ConsumerWidget {
   const FuelSettingsScreen({super.key});
@@ -17,6 +18,7 @@ class FuelSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fuelState = ref.watch(fuelProvider);
     final notifier = ref.read(fuelProvider.notifier);
+    final isAdvanced = ref.watch(advancedModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -83,14 +85,15 @@ class FuelSettingsScreen extends ConsumerWidget {
                 ? (val) => notifier.toggleAutoCorrect(val)
                 : null,
           ),
-          SwitchListTile(
-            title: const Text('Корректировать при симуляции'),
-            subtitle: const Text('Пересчитывать расход также и в симуляторе'),
-            value: fuelState.correctInSimulator,
-            onChanged: fuelState.enableFuelTracking
-                ? (val) => notifier.toggleCorrectInSimulator(val)
-                : null,
-          ),
+          if (isAdvanced)
+            SwitchListTile(
+              title: const Text('Корректировать при симуляции'),
+              subtitle: const Text('Пересчитывать расход также и в симуляторе'),
+              value: fuelState.correctInSimulator,
+              onChanged: fuelState.enableFuelTracking
+                  ? (val) => notifier.toggleCorrectInSimulator(val)
+                  : null,
+            ),
           const Divider(),
           ListTile(
             title: const Text('Рубежный (тревожный) остаток (л)'),

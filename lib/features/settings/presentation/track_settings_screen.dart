@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../flight_detector/presentation/track_config_provider.dart';
+import '../application/advanced_mode_provider.dart';
 
 class TrackSettingsScreen extends ConsumerWidget {
   const TrackSettingsScreen({super.key});
@@ -18,6 +19,7 @@ class TrackSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(trackConfigProvider);
     final notifier = ref.read(trackConfigProvider.notifier);
+    final isAdvanced = ref.watch(advancedModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Управление треком')),
@@ -41,178 +43,182 @@ class TrackSettingsScreen extends ConsumerWidget {
             value: config.enableAutoLanding,
             onChanged: (val) => notifier.updateConfig(enableAutoLanding: val),
           ),
-          SwitchListTile(
-            title: const Text('Авто-стоп по ветру (CFV)'),
-            value: config.enableCfvWindFail,
-            onChanged: (val) => notifier.updateConfig(enableCfvWindFail: val),
-          ),
-          SwitchListTile(
-            title: const Text('Авто-стоп по маневрам (CFV)'),
-            value: config.enableCfvIntersection,
-            onChanged: (val) => notifier.updateConfig(enableCfvIntersection: val),
-          ),
-          SwitchListTile(
-            title: const Text('Авто-стоп по трассе (CFV)'),
-            value: config.enableCfvHighway,
-            onChanged: (val) => notifier.updateConfig(enableCfvHighway: val),
-          ),
-          SwitchListTile(
-            title: const Text('Debug markers'),
-            value: config.enableDebugMarkers,
-            onChanged: (val) => notifier.updateConfig(enableDebugMarkers: val),
-          ),
+          if (isAdvanced) ...[
+            SwitchListTile(
+              title: const Text('Авто-стоп по ветру (CFV)'),
+              value: config.enableCfvWindFail,
+              onChanged: (val) => notifier.updateConfig(enableCfvWindFail: val),
+            ),
+            SwitchListTile(
+              title: const Text('Авто-стоп по маневрам (CFV)'),
+              value: config.enableCfvIntersection,
+              onChanged: (val) => notifier.updateConfig(enableCfvIntersection: val),
+            ),
+            SwitchListTile(
+              title: const Text('Авто-стоп по трассе (CFV)'),
+              value: config.enableCfvHighway,
+              onChanged: (val) => notifier.updateConfig(enableCfvHighway: val),
+            ),
+            SwitchListTile(
+              title: const Text('Debug markers'),
+              value: config.enableDebugMarkers,
+              onChanged: (val) => notifier.updateConfig(enableDebugMarkers: val),
+            ),
+          ],
           
-          const Divider(height: 32),
-          const Text(
-            'Задержки',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
+          if (isAdvanced) ...[
+            const Divider(height: 32),
+            const Text(
+              'Задержки',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-          ListTile(
-            title: const Text('Ожидание перед стартом (сек)'),
-            subtitle: Text(config.takeoffWaitTimeSec.toString()),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.takeoffWaitTimeSec.toDouble(),
-                min: 1,
-                max: 30,
-                divisions: 29,
-                label: config.takeoffWaitTimeSec.toString(),
-                onChanged: (value) =>
-                    notifier.updateConfig(takeoffWaitTimeSec: value.toInt()),
+            ListTile(
+              title: const Text('Ожидание перед стартом (сек)'),
+              subtitle: Text(config.takeoffWaitTimeSec.toString()),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.takeoffWaitTimeSec.toDouble(),
+                  min: 1,
+                  max: 15,
+                  divisions: 14,
+                  label: config.takeoffWaitTimeSec.toString(),
+                  onChanged: (value) =>
+                      notifier.updateConfig(takeoffWaitTimeSec: value.toInt()),
+                ),
               ),
             ),
-          ),
-          ListTile(
-            title: const Text('Время разбега/отрыва (сек)'),
-            subtitle: Text(config.takeoffFlightTimeSec.toString()),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.takeoffFlightTimeSec.toDouble(),
-                min: 5,
-                max: 30,
-                divisions: 25,
-                label: config.takeoffFlightTimeSec.toString(),
-                onChanged: (value) =>
-                    notifier.updateConfig(takeoffFlightTimeSec: value.toInt()),
+            ListTile(
+              title: const Text('Время разбега/отрыва (сек)'),
+              subtitle: Text(config.takeoffFlightTimeSec.toString()),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.takeoffFlightTimeSec.toDouble(),
+                  min: 5,
+                  max: 30,
+                  divisions: 25,
+                  label: config.takeoffFlightTimeSec.toString(),
+                  onChanged: (value) =>
+                      notifier.updateConfig(takeoffFlightTimeSec: value.toInt()),
+                ),
               ),
             ),
-          ),
-          ListTile(
-            title: const Text('Время подтверждения посадки (сек)'),
-            subtitle: Text(config.landingConfirmTimeSec.toString()),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.landingConfirmTimeSec.toDouble(),
-                min: 5,
-                max: 30,
-                divisions: 25,
-                label: config.landingConfirmTimeSec.toString(),
-                onChanged: (value) =>
-                    notifier.updateConfig(landingConfirmTimeSec: value.toInt()),
+            ListTile(
+              title: const Text('Время подтверждения посадки (сек)'),
+              subtitle: Text(config.landingConfirmTimeSec.toString()),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.landingConfirmTimeSec.toDouble(),
+                  min: 5,
+                  max: 30,
+                  divisions: 25,
+                  label: config.landingConfirmTimeSec.toString(),
+                  onChanged: (value) =>
+                      notifier.updateConfig(landingConfirmTimeSec: value.toInt()),
+                ),
               ),
             ),
-          ),
 
-          const Divider(height: 32),
-          const Text(
-            'Пороги скоростей (м/с)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
+            const Divider(height: 32),
+            const Text(
+              'Пороги скоростей (м/с)',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-          ListTile(
-            title: const Text('Мин. полетная скорость'),
-            subtitle: Text(
-              '${config.minFlightSpeedMs.toStringAsFixed(1)} м/с (~${(config.minFlightSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
-            ),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.minFlightSpeedMs,
-                min: 2.0,
-                max: 10.0,
-                divisions: 80,
-                label: config.minFlightSpeedMs.toStringAsFixed(1),
-                onChanged: (value) =>
-                    notifier.updateConfig(minFlightSpeedMs: value),
+            ListTile(
+              title: const Text('Мин. взлетная скорость'),
+              subtitle: Text(
+                '${config.minFlightSpeedMs.toStringAsFixed(1)} м/с (~${(config.minFlightSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
+              ),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.minFlightSpeedMs,
+                  min: 2.0,
+                  max: 10.0,
+                  divisions: 80,
+                  label: config.minFlightSpeedMs.toStringAsFixed(1),
+                  onChanged: (value) =>
+                      notifier.updateConfig(minFlightSpeedMs: value),
+                ),
               ),
             ),
-          ),
-          ListTile(
-            title: const Text('Макс. скорость пешехода'),
-            subtitle: Text(
-              '${config.maxWalkSpeedMs.toStringAsFixed(1)} м/с (~${(config.maxWalkSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
-            ),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.maxWalkSpeedMs,
-                min: 0.2,
-                max: 5.0,
-                divisions: 48,
-                label: config.maxWalkSpeedMs.toStringAsFixed(1),
-                onChanged: (value) =>
-                    notifier.updateConfig(maxWalkSpeedMs: value),
+            ListTile(
+              title: const Text('Мин. скорость пешехода'),
+              subtitle: Text(
+                '${config.maxWalkSpeedMs.toStringAsFixed(1)} м/с (~${(config.maxWalkSpeedMs * 3.6).toStringAsFixed(0)} км/ч)',
+              ),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.maxWalkSpeedMs,
+                  min: 0.2,
+                  max: 5.0,
+                  divisions: 48,
+                  label: config.maxWalkSpeedMs.toStringAsFixed(1),
+                  onChanged: (value) =>
+                      notifier.updateConfig(maxWalkSpeedMs: value),
+                ),
               ),
             ),
-          ),
 
-          const Divider(height: 32),
-          const Text(
-            'Continuous Flight Validation (CFV)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
+            const Divider(height: 32),
+            const Text(
+              'Валидация состояния «в полёте»',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-          ListTile(
-            title: const Text('Таймаут провала ветра (сек)'),
-            subtitle: Text(config.cfvWindFailTimeoutSec.toString()),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.cfvWindFailTimeoutSec.toDouble(),
-                min: 30,
-                max: 300,
-                divisions: 27,
-                label: config.cfvWindFailTimeoutSec.toString(),
-                onChanged: (value) =>
-                    notifier.updateConfig(cfvWindFailTimeoutSec: value.toInt()),
+            ListTile(
+              title: const Text('Таймаут провала ветра (сек)'),
+              subtitle: Text(config.cfvWindFailTimeoutSec.toString()),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.cfvWindFailTimeoutSec.toDouble(),
+                  min: 30,
+                  max: 300,
+                  divisions: 27,
+                  label: config.cfvWindFailTimeoutSec.toString(),
+                  onChanged: (value) =>
+                      notifier.updateConfig(cfvWindFailTimeoutSec: value.toInt()),
+                ),
               ),
             ),
-          ),
-          ListTile(
-            title: const Text('Окно поворота (сек)'),
-            subtitle: Text(config.cfvTurnWindowSec.toString()),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: config.cfvTurnWindowSec.toDouble(),
-                min: 2,
-                max: 15,
-                divisions: 13,
-                label: config.cfvTurnWindowSec.toString(),
-                onChanged: (value) =>
-                    notifier.updateConfig(cfvTurnWindowSec: value.toInt()),
+            ListTile(
+              title: const Text('Окно поворота (сек)'),
+              subtitle: Text(config.cfvTurnWindowSec.toString()),
+              trailing: SizedBox(
+                width: 150,
+                child: Slider(
+                  value: config.cfvTurnWindowSec.toDouble(),
+                  min: 2,
+                  max: 15,
+                  divisions: 13,
+                  label: config.cfvTurnWindowSec.toString(),
+                  onChanged: (value) =>
+                      notifier.updateConfig(cfvTurnWindowSec: value.toInt()),
+                ),
               ),
             ),
-          ),
+          ],
 
           const Divider(height: 32),
           const Text(

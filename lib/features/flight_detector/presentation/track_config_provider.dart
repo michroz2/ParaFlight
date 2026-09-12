@@ -30,13 +30,13 @@ class TrackConfigNotifier extends StateNotifier<TrackConfig> {
       enableDebugMarkers: prefs.getBool('enableDebugMarkers') ?? false,
       takeoffWaitTimeSec: prefs.getInt('takeoffWaitTimeSec') ?? 5,
       takeoffFlightTimeSec: prefs.getInt('takeoffFlightTimeSec') ?? 15,
-      landingConfirmTimeSec: prefs.getInt('landingConfirmTimeSec') ?? 10,
-      minFlightSpeedMs: prefs.getDouble('minFlightSpeedMs') ?? 4.16,
-      maxWalkSpeedMs: prefs.getDouble('maxWalkSpeedMs') ?? 1.38,
+      landingConfirmTimeSec: prefs.getInt('landingConfirmTimeSec') ?? 5,
+      minFlightSpeedMs: prefs.getDouble('minFlightSpeedMs') ?? 5.5,
+      maxWalkSpeedMs: prefs.getDouble('maxWalkSpeedMs') ?? 0.9,
       cfvWindFailTimeoutSec: prefs.getInt('cfvWindFailTimeoutSec') ?? 180,
       cfvTurnWindowSec: prefs.getInt('cfvTurnWindowSec') ?? 5,
       gpsRecordIntervalSec: prefs.getDouble('gpsRecordIntervalSec') ?? 0.5,
-      gpsCleanupExtraSec: prefs.getInt('gpsCleanupExtraSec') ?? 30,
+      gpsCleanupExtraSec: prefs.getInt('gpsCleanupExtraSec') ?? 10,
     );
   }
 

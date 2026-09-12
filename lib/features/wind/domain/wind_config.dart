@@ -52,10 +52,10 @@ class WindConfig {
   final double windEmaAlpha;
 
   const WindConfig({
-    this.windowSizeSec = 120.0,
+    this.windowSizeSec = 240.0,
     this.minTurnAngleDeg = 30.0,
-    this.minAirspeedMs = 5.55, // ~20 km/h
-    this.maxAirspeedMs = 19.44, // ~70 km/h
+    this.minAirspeedMs = 9.0, // ~32 km/h
+    this.maxAirspeedMs = 15.0, // ~54 km/h
     this.sampleIntervalSec = 0.5,
     this.gpxSmoothingWindow = 2,
     this.minCogChangeDeg = 1.0,
@@ -63,7 +63,7 @@ class WindConfig {
     this.enableWindArrow = true, 
     this.enableWindOverlay = false,
     this.maxRmseMs = 1.5, // Изменение: 2.0 -> 1.5
-    this.minBufferPoints = 20, // Новое
+    this.minBufferPoints = 30, // Новое
     this.windEmaAlpha = 0.2, // Новое
   });
 

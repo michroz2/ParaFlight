@@ -20,6 +20,8 @@ import 'track_settings_screen.dart'; // Новое: импорт экрана т
 import 'wind_settings_screen.dart'; // Новое: импорт экрана ветра
 import 'dashboard_settings_screen.dart'; // Новое: импорт экрана дашборда
 import '../../fuel/presentation/fuel_settings_screen.dart';
+import 'about_screen.dart';
+import '../application/advanced_mode_provider.dart';
 
 // Новое: импорты для проверки сохранения трека при выходе
 import '../../../core/location/location_state.dart';
@@ -35,6 +37,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAdvanced = ref.watch(advancedModeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Настройки'),
@@ -93,19 +97,21 @@ class SettingsScreen extends ConsumerWidget {
             }, // конец onTap
           ), // конец ListTile
           const Divider(),
-          // Новое: Элемент перехода к настройкам панели инструментов
-          ListTile(
-            leading: const Icon(Icons.dashboard),
-            title: const Text('Панель инструментов'),
-            subtitle: const Text('Настройка вариометра (Vz) и приборов'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const DashboardSettingsScreen()),
-              );
-            }, // конец onTap
-          ), // конец ListTile
-          const Divider(),
+          if (isAdvanced) ...[
+            // Новое: Элемент перехода к настройкам панели инструментов
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text('Панель инструментов'),
+              subtitle: const Text('Настройка вариометра (Vz) и приборов'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const DashboardSettingsScreen()),
+                );
+              }, // конец onTap
+            ), // конец ListTile
+            const Divider(),
+          ],
           // Расчет топлива
           ListTile(
             leading: const Icon(Icons.local_gas_station),
@@ -131,6 +137,19 @@ class SettingsScreen extends ConsumerWidget {
               );
             }, // конец onTap
           ), // конец ListTile
+          const Divider(),
+          // Новое: О приложении
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('О приложении'),
+            subtitle: const Text('Информация и сброс настроек'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              );
+            },
+          ),
           const Divider(),
           // Новое: Элемент Выхода из приложения
           ListTile(

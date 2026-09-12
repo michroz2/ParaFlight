@@ -19,6 +19,8 @@ import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'core/location/flight_path_state.dart';
 import 'features/flight_detector/presentation/flight_detector_provider.dart';
 import 'features/settings/application/cockpit_mode_controller.dart'; // Новое: импорт контроллера Кокпита
+import 'features/settings/application/advanced_mode_provider.dart';
+import 'core/location/location_state.dart';
 
 void main() async {
   // Гарантируем инициализацию Flutter-биндингов до асинхронных вызовов
@@ -52,6 +54,11 @@ void main() async {
   container.listen(realGpsTrackProvider, (prev, next) {});
   container.listen(flightDetectorProvider, (prev, next) {});
   container.listen(cockpitModeControllerProvider, (prev, next) {});
+  container.listen(dataSourceProvider, (prev, next) {
+    if (next == DataSource.internalGps) {
+      container.read(advancedModeProvider.notifier).reset();
+    }
+  });
 
   runApp(
     UncontrolledProviderScope(

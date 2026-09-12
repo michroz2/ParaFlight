@@ -82,7 +82,7 @@ final orientationProvider = StateNotifierProvider<OrientationNotifier, AppOrient
 class CockpitModeNotifier extends StateNotifier<bool> {
   final Ref ref;
 
-  CockpitModeNotifier(this.ref) : super(ref.read(sharedPreferencesProvider).getBool('cockpit_mode_enabled') ?? true); // Дефолт: true
+  CockpitModeNotifier(this.ref) : super(ref.read(sharedPreferencesProvider).getBool('cockpit_mode_enabled') ?? false); // Дефолт: false
 
   void toggle(bool value) {
     state = value;

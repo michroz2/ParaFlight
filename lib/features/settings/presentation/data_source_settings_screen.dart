@@ -15,6 +15,7 @@ import '../../../core/location/location_state.dart';
 import '../../../core/storage/local_storage_service.dart'; // Новое: импорт сервиса хранилища
 import '../../../core/location/flight_path_state.dart';
 import '../../../core/location/gpx_writer.dart';
+import '../application/advanced_mode_provider.dart';
 import '../../flight_detector/presentation/flight_detector_provider.dart';
 import '../../flight_detector/presentation/track_config_provider.dart';
 import '../../dashboard/presentation/widgets/save_track_dialog.dart';
@@ -99,6 +100,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentSource = ref.watch(dataSourceProvider);
     final selectedFile = ref.watch(selectedGpxFileProvider);
+    final isAdvanced = ref.watch(advancedModeProvider);
 
     final fileName = selectedFile != null
         ? path.basename(selectedFile)
@@ -181,12 +183,12 @@ class DataSourceSettingsScreen extends ConsumerWidget {
             child: Column(
               children: [
                 RadioListTile<DataSource>(
-                  title: const Text('Симулятор GPX'),
+                  title: const Text('Симулятор'),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Воспроизведение записанного трека',
+                        'Воспроизведение записанного GPX трека',
                       ),
                       if (currentSource == DataSource.simulator) ...[
                         const SizedBox(height: 8),
@@ -205,7 +207,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
                   value: DataSource.simulator,
                 ),
                 RadioListTile<DataSource>(
-                  title: const Text('Встроенный GPS смартфона'),
+                  title: const Text('Встроенный GPS'),
                   subtitle: const Text(
                     'Использование аппаратного датчика геолокации устройства',
                   ),
@@ -214,7 +216,7 @@ class DataSourceSettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          if (currentSource == DataSource.internalGps)
+          if (currentSource == DataSource.internalGps && isAdvanced)
             SwitchListTile(
               title: const Text('Вычислять скорость по координатам'),
               subtitle: const Text(

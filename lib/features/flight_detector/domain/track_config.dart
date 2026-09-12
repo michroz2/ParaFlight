@@ -63,16 +63,16 @@ class TrackConfig {
     this.enableDebugMarkers = false,
     this.takeoffWaitTimeSec = 5,
     this.takeoffFlightTimeSec = 15,
-    this.landingConfirmTimeSec = 10,
-    this.minFlightSpeedMs = 4.16, // ~15 km/h
-    this.maxWalkSpeedMs = 1.38, // ~5 km/h
+    this.landingConfirmTimeSec = 5,
+    this.minFlightSpeedMs = 5.5,
+    this.maxWalkSpeedMs = 0.9,
     this.cfvMinFlightSog = 2.77, // ~10 km/h
     this.cfvTurnMinSog = 5.55, // ~20 km/h
     this.cfvHighwaySog = 25.0, // ~90 km/h
     this.cfvWindFailTimeoutSec = 180,
     this.cfvTurnWindowSec = 5,
     this.gpsRecordIntervalSec = 0.5,
-    this.gpsCleanupExtraSec = 30,
+    this.gpsCleanupExtraSec = 10,
   });
 
   TrackConfig copyWith({

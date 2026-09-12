@@ -28,7 +28,7 @@ class MapSettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           const Text(
-            'Автоскрытие интерфейса',
+            'Органы управления по нажатию',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
@@ -46,7 +46,7 @@ class MapSettingsScreen extends ConsumerWidget {
           const Divider(height: 32),
 
           const Text(
-            'Автовозврат карты к пилоту',
+            'Автоцентровка карты',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
