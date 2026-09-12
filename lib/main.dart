@@ -1,16 +1,17 @@
 // =============================================================================
 // Файл:    main.dart
 // Проект:  ParaFlight
-// Версия:  0.3.0
+// Версия:  0.3.1
 // Цель:    Точка входа в приложение и инициализация глобальных сервисов
 // Изменения:
 //   0.3.0 - Инициализация глобальных сервисов и провайдеров при запуске
+//   0.3.1 - Изменение: удален отладочный Timer.periodic
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async'; // Для таймера
+
 
 import 'core/preferences/preferences_provider.dart';
 import 'core/storage/local_storage_service.dart'; // Новое: Импорт сервиса локального хранилища
@@ -26,10 +27,7 @@ void main() async {
   // Гарантируем инициализацию Flutter-биндингов до асинхронных вызовов
   WidgetsFlutterBinding.ensureInitialized();
   
-  // ДИАГНОСТИКА: Проверка, усыпляет ли система Dart-изолят в фоне
-  Timer.periodic(const Duration(seconds: 2), (timer) {
-    debugPrint('DIAGNOSTIC: Dart Isolate is ALIVE and ticking in background! Tick: ${timer.tick}');
-  });
+  // Изменение: Удален отладочный Timer.periodic, чтобы не спамить в логах продакшена
   
   // Инициализация SharedPreferences до старта UI
   final sharedPreferences = await SharedPreferences.getInstance();

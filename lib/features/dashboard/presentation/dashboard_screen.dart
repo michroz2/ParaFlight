@@ -1,12 +1,13 @@
 // =============================================================================
 // Файл:    dashboard_screen.dart
 // Проект:  ParaFlight
-// Версия:  1.18.11
+// Версия:  1.22.1
 // Цель:    Главный экран с линейными контролами и умным компасом ветра
 // Изменения:
 //   0.7.0 - Добавлены линейные контролы и умный компас ветра
 //   1.18.10 - Вывод параметров буфера ветра (bufferSize и bufferAngle)
 //   1.18.11 - Цветовая индикация параметров валидации ветра в телеметрии
+//   1.22.1 - Вынос AnimationController на уровень класса для предотвращения утечки памяти
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -61,6 +62,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   int _advancedTapCount = 0;
   Timer? _advancedTapTimer;
 
+  // Новое: Контроллер анимации карты (для предотвращения утечек памяти)
+  AnimationController? _mapAnimationController;
+
   // Переменная для настройки скорости возврата карты на маркер самолёта (в миллисекундах)
   final int _mapReturnAnimationMs = 1000;
 
@@ -114,36 +118,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       end: destZoom,
     );
 
-    final controller = AnimationController(
+    // Изменение: Освобождаем предыдущий контроллер перед созданием нового
+    _mapAnimationController?.dispose();
+
+    _mapAnimationController = AnimationController(
       duration: Duration(milliseconds: _mapReturnAnimationMs),
       vsync: this,
     );
     final animation = CurvedAnimation(
-      parent: controller,
+      parent: _mapAnimationController!,
       curve: Curves.easeInOut,
     );
 
-    controller.addListener(() {
+    _mapAnimationController!.addListener(() {
       _mapController.move(
         LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
         zoomTween.evaluate(animation),
       );
     });
 
-    animation.addStatusListener((status) {
-      if (status == AnimationStatus.completed ||
-          status == AnimationStatus.dismissed) {
-        controller.dispose();
-      }
-    });
-
-    controller.forward();
+    _mapAnimationController!.forward();
   }
 
   @override
   void dispose() {
     _hideTimer?.cancel();
     _autoReturnTimer?.cancel();
+    _mapAnimationController?.dispose(); // Изменение: Очистка контроллера анимации
     super.dispose();
   }
 

@@ -1,10 +1,11 @@
 // =============================================================================
 // Файл:    local_storage_service.dart
 // Проект:  ParaFlight
-// Версия:  0.1.0
+// Версия:  0.1.1
 // Цель:    Сервис для работы с локальной файловой системой (чтение и запись треков в публичную папку)
 // Изменения:
 //   0.1.0 - Первичная реализация
+//   0.1.1 - Изменение: добавлена защита от краша при отсутствии прав на файловую систему
 // =============================================================================
 
 import 'dart:io';
@@ -44,13 +45,18 @@ class LocalStorageService {
       // Запрашиваем полный доступ к файлам на Android 11+
       var status = await Permission.manageExternalStorage.status;
       if (!status.isGranted) {
-        await Permission.manageExternalStorage.request();
+        status = await Permission.manageExternalStorage.request();
       } // конец if
       
       // Запрашиваем обычный доступ для старых Android
       var storageStatus = await Permission.storage.status;
       if (!storageStatus.isGranted) {
-        await Permission.storage.request();
+        storageStatus = await Permission.storage.request();
+      } // конец if
+
+      // Изменение: Защита от краша, если юзер не дал права
+      if (!status.isGranted && !storageStatus.isGranted) {
+        return; 
       } // конец if
     } // конец if
 
@@ -91,15 +97,20 @@ class LocalStorageService {
 
   // Новое: Метод сохранения трека
   Future<String> saveTrack(String fileName, String content) async {
-    final dirPath = await _getTracksDirectoryPath();
-    final dir = Directory(dirPath);
-    
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    } // конец if
+    // Изменение: Обернули весь процесс в try-catch для защиты от отсутствия прав
+    try {
+      final dirPath = await _getTracksDirectoryPath();
+      final dir = Directory(dirPath);
+      
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      } // конец if
 
-    final file = File('$dirPath/$fileName');
-    await file.writeAsString(content);
-    return file.path;
+      final file = File('$dirPath/$fileName');
+      await file.writeAsString(content);
+      return file.path;
+    } catch (e) {
+      return "";
+    } // конец catch
   } // конец метода saveTrack
 } // конец класса LocalStorageService

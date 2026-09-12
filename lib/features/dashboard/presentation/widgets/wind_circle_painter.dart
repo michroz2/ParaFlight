@@ -1,12 +1,13 @@
 // =============================================================================
 // Файл:    wind_circle_painter.dart
 // Проект:  ParaFlight
-// Версия:  1.20.5
+// Версия:  1.22.1
 // Цель:    Отрисовка круга ветра с радарным масштабом
 // Изменения:
 //   0.1.0 - Первичная реализация
 //   1.20.2 - Улучшен расчет амбиентного ветра. Собирается Минимальный рабочий буфер. Если расчеты дают некорректные ошибки, буфер очищается.
 //   1.20.5 - Переименовано isStale в isValid и инвертирована логика цвета
+//   1.22.1 - Вынесены объекты Paint в поля класса для оптимизации Garbage Collector
 // =============================================================================
 
 import 'dart:math';
@@ -35,17 +36,42 @@ class WindCirclePainter extends CustomPainter {
     this.startDistanceKm, // Новое
   });
 
+  // Изменение: Вынесли объекты Paint на уровень класса, чтобы не создавать их в paint() при каждом кадре (60 FPS)
+  final Paint _circlePaint = Paint()
+    ..color = Colors.black.withAlpha(80)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+
+  final Paint _scalePaint = Paint()
+    ..color = Colors.black.withAlpha(80)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+
+  final Paint _bgPaint = Paint()..color = Colors.white.withAlpha(120);
+
+  final Paint _northPaint = Paint()
+    ..color = Colors.red.withAlpha(200)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0;
+
+  final Paint _nBgPaint = Paint()..color = Colors.white.withAlpha(220);
+
+  final Paint _validArrowPaint = Paint()..color = Colors.blueAccent;
+  final Paint _invalidArrowPaint = Paint()..color = Colors.grey;
+
+  final Paint _validTextBgPaint = Paint()..color = const Color(0xCC333333);
+  final Paint _invalidTextBgPaint = Paint()..color = Colors.grey.withAlpha(200);
+
+  final Paint _startArrowPaint = Paint()..color = Colors.greenAccent;
+  final Paint _startTextBgPaint = Paint()..color = Colors.green.withAlpha(200);
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = diameter / 2;
 
     // 1. Отрисовка пунктирного круга
-    final circlePaint = Paint()
-      ..color = Colors.black.withAlpha(80)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
+    // Изменение: Используем _circlePaint из класса
     final double dashWidth = 8.0;
     final double dashSpace = 8.0;
     final double circumference = 2 * pi * radius;
@@ -60,16 +86,12 @@ class WindCirclePainter extends CustomPainter {
         startAngle,
         sweepAngle,
         false,
-        circlePaint,
+        _circlePaint,
       );
     } // конец for
 
     // 2. Радарная шкала масштаба (влево)
-    final scalePaint = Paint()
-      ..color = Colors.black.withAlpha(80)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    
+    // Изменение: Используем _scalePaint из класса
     // Рисуем пунктир от центра влево (до круга)
     double currentX = center.dx;
     final double scaleDashWidth = 4.0;
@@ -78,7 +100,7 @@ class WindCirclePainter extends CustomPainter {
       canvas.drawLine(
         Offset(currentX, center.dy), 
         Offset(max(center.dx - radius, currentX - scaleDashWidth), center.dy), 
-        scalePaint
+        _scalePaint
       );
       currentX -= (scaleDashWidth + scaleDashSpace);
     }
@@ -108,18 +130,14 @@ class WindCirclePainter extends CustomPainter {
       ),
       const Radius.circular(4),
     );
-    final bgPaint = Paint()..color = Colors.white.withAlpha(120);
-    canvas.drawRRect(bgRect, bgPaint);
+    // Изменение: Используем _bgPaint из класса
+    canvas.drawRRect(bgRect, _bgPaint);
 
     scaleTextPainter.paint(canvas, Offset(scaleTextX, scaleTextY));
 
     // 3. Отрисовка линии, указывающей на север (только если курс сверху)
     if (showNorthPointer) {
-      final northPaint = Paint()
-        ..color = Colors.red.withAlpha(200)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-
+      // Изменение: Используем _northPaint из класса
       final northAngle = -mapRotation * pi / 180.0 - pi / 2;
       
       canvas.save();
@@ -128,7 +146,7 @@ class WindCirclePainter extends CustomPainter {
       canvas.rotate(northAngle + pi / 2);
 
       // Красная линия от центра до края круга
-      canvas.drawLine(Offset.zero, Offset(0, -radius), northPaint);
+      canvas.drawLine(Offset.zero, Offset(0, -radius), _northPaint);
 
       // Буква N
       final nSpan = const TextSpan(
@@ -148,7 +166,8 @@ class WindCirclePainter extends CustomPainter {
         width: bgWidth,
         height: bgHeight,
       );
-      canvas.drawRRect(RRect.fromRectAndRadius(nBgRect, const Radius.circular(4)), Paint()..color = Colors.white.withAlpha(220));
+      // Изменение: Используем _nBgPaint из класса
+      canvas.drawRRect(RRect.fromRectAndRadius(nBgRect, const Radius.circular(4)), _nBgPaint);
 
       nPainter.paint(canvas, Offset(-nPainter.width / 2, nCenterY - nPainter.height / 2));
       canvas.restore();
@@ -181,7 +200,7 @@ class WindCirclePainter extends CustomPainter {
         ..close();
 
       // Изменение: Цвет зависит от валидности данных (!isValid делает серым)
-      canvas.drawPath(arrowPath, Paint()..color = !isValid ? Colors.grey : Colors.blueAccent);
+      canvas.drawPath(arrowPath, !isValid ? _invalidArrowPaint : _validArrowPaint);
 
       // 5. Отрисовка лэйбла ветра
       final textStr = windSpeed!.toStringAsFixed(1);
@@ -208,7 +227,7 @@ class WindCirclePainter extends CustomPainter {
       // Изменение: Цвет подложки текста зависит от валидности данных (!isValid делает серым)
       canvas.drawRRect(
         RRect.fromRectAndRadius(textRect, const Radius.circular(6.0)),
-        Paint()..color = !isValid ? Colors.grey.withAlpha(200) : const Color(0xCC333333),
+        !isValid ? _invalidTextBgPaint : _validTextBgPaint,
       );
 
       textPainter.paint(
@@ -245,7 +264,8 @@ class WindCirclePainter extends CustomPainter {
         ..lineTo(sP2X, sP2Y)
         ..close();
 
-      canvas.drawPath(sArrowPath, Paint()..color = Colors.greenAccent);
+      // Изменение: Используем _startArrowPaint из класса
+      canvas.drawPath(sArrowPath, _startArrowPaint);
 
       // Плашка с дистанцией (горизонтальная)
       final sTextStr = startDistanceKm!.toStringAsFixed(1); // 'км' здесь не нужны!
@@ -265,9 +285,10 @@ class WindCirclePainter extends CustomPainter {
         height: sTextPainter.height + 4,
       );
 
+      // Изменение: Используем _startTextBgPaint из класса
       canvas.drawRRect(
         RRect.fromRectAndRadius(sTextRect, const Radius.circular(4.0)),
-        Paint()..color = Colors.green.withAlpha(200),
+        _startTextBgPaint,
       );
       
       sTextPainter.paint(
