@@ -48,7 +48,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with TickerProviderStateMixin {
   final MapController _mapController = MapController();
-  MapRotationMode? _rotationMode;
 
   bool _showOverlays = false;
   Timer? _hideTimer;
@@ -302,7 +301,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     });
 
     final mapSettings = ref.watch(mapSettingsProvider);
-    _rotationMode ??= mapSettings.defaultRotationMode;
 
     final screenSize = MediaQuery.of(context).size;
 
@@ -347,7 +345,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             debugPrint('DashboardScreen moving map to ${next.latitude}, ${next.longitude}');
             _mapController.move(LatLng(next.latitude, next.longitude), z);
           }
-          if (_rotationMode == MapRotationMode.heading) {
+          final currentRotationMode = ref.read(mapSettingsProvider).defaultRotationMode;
+          if (currentRotationMode == MapRotationMode.heading) {
             _mapController.rotate(360.0 - next.heading);
           }
         } catch (e) {
@@ -812,22 +811,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         !_isFreePanMode, // Синяя, когда включено авто-слежение
                   ),
                   _buildControlButton(
-                    _rotationMode == MapRotationMode.heading
+                    mapSettings.defaultRotationMode == MapRotationMode.heading
                         ? Icons.navigation
                         : Icons.explore,
                     () {
-                      setState(() {
-                        _rotationMode = _rotationMode == MapRotationMode.north
-                            ? MapRotationMode.heading
-                            : MapRotationMode.north;
-                        if (_rotationMode == MapRotationMode.north) {
-                          _mapController.rotate(0);
-                        }
-                      });
+                      final newMode = mapSettings.defaultRotationMode == MapRotationMode.north
+                          ? MapRotationMode.heading
+                          : MapRotationMode.north;
+                      ref.read(mapSettingsProvider.notifier).setDefaultRotation(newMode);
+                      if (newMode == MapRotationMode.north) {
+                        _mapController.rotate(0);
+                      }
                       _resetUiTimer();
                     },
                     isActive:
-                        _rotationMode ==
+                        mapSettings.defaultRotationMode ==
                         MapRotationMode.heading, // Синяя, когда по курсу
                   ),
                   _buildControlButton(Icons.add, () {
