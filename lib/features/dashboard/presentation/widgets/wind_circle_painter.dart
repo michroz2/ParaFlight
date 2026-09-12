@@ -222,14 +222,16 @@ class WindCirclePainter extends CustomPainter {
       final startScreenAngle = (startPointerBearing! - mapRotation) * pi / 180.0;
       final startDrawAngle = startScreenAngle - pi / 2;
 
-      final sTipX = center.dx + radius * cos(startDrawAngle);
-      final sTipY = center.dy + radius * sin(startDrawAngle);
-
       final sArrowLength = 14.0; 
       final sArrowWidth = 12.0;
 
-      final sBackX = center.dx + (radius + sArrowLength) * cos(startDrawAngle);
-      final sBackY = center.dy + (radius + sArrowLength) * sin(startDrawAngle);
+      // Изменение: Стрелка на старт должна указывать НАРУЖУ (от пилота к точке), 
+      // поэтому острие (tip) находится дальше от центра, чем база (back).
+      final sTipX = center.dx + (radius + sArrowLength) * cos(startDrawAngle);
+      final sTipY = center.dy + (radius + sArrowLength) * sin(startDrawAngle);
+
+      final sBackX = center.dx + radius * cos(startDrawAngle);
+      final sBackY = center.dy + radius * sin(startDrawAngle);
 
       final sPerpAngle = startDrawAngle + pi / 2;
       final sP1X = sBackX + (sArrowWidth / 2) * cos(sPerpAngle);
