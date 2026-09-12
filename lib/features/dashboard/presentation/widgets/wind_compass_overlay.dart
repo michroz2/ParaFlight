@@ -12,6 +12,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../../core/location/location_state.dart';
 import '../../../flight_detector/presentation/flight_detector_provider.dart';
@@ -76,6 +77,31 @@ class WindCompassOverlay extends ConsumerWidget {
         ? '${(bestRadiusMeters / 1000).toStringAsFixed(bestRadiusMeters % 1000 == 0 ? 0 : 1)} km'
         : '${bestRadiusMeters.toStringAsFixed(0)} m';
 
+    // Новое: Вычисление указателя на старт
+    final flights = ref.watch(flightDetectorProvider).flights;
+    final startLocEntity = flights.isNotEmpty ? flights.first.start : null;
+    
+    double? startBearing;
+    double? startDistanceKm;
+
+    if (startLocEntity != null && mapSettings.enableStartPointer && currentLocation != null) {
+      final startLatLng = LatLng(startLocEntity.latitude, startLocEntity.longitude);
+      final currentLatLng = LatLng(currentLocation.latitude, currentLocation.longitude);
+      
+      bool isVisible = true;
+      try {
+         isVisible = mapController.camera.visibleBounds.contains(startLatLng);
+      } catch (_) {
+         // Fallback if camera is not ready
+      }
+      
+      if (!isVisible) {
+        const distance = Distance();
+        startDistanceKm = distance.as(LengthUnit.Kilometer, currentLatLng, startLatLng);
+        startBearing = distance.bearing(currentLatLng, startLatLng);
+      }
+    }
+
     return IgnorePointer(
       child: Center(
         child: Transform.translate(
@@ -99,6 +125,8 @@ class WindCompassOverlay extends ConsumerWidget {
                 scaleText: scaleText,
                 showNorthPointer: rotationMode == MapRotationMode.heading,
                 isValid: wind?.isValid ?? false, // Изменение: Передаем флаг валидности
+                startPointerBearing: startBearing, // Новое
+                startDistanceKm: startDistanceKm, // Новое
               ),
             ),
           ),

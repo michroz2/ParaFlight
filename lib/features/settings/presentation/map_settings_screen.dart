@@ -87,6 +87,18 @@ class MapSettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const Divider(height: 32),
+          const Text(
+            'Отображение',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          // Новое: Настройка указателя на старт
+          SwitchListTile(
+            title: const Text('Показывать направление на старт'),
+            value: settings.enableStartPointer,
+            onChanged: (value) => ref.read(mapSettingsProvider.notifier).setEnableStartPointer(value),
+          ),
         ],
       ), // конец ListView
     ); // конец Scaffold

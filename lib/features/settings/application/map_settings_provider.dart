@@ -16,22 +16,26 @@ class MapSettings {
   final int uiAutoHideSeconds;
   final int mapAutoCenterSeconds;
   final MapRotationMode defaultRotationMode;
+  final bool enableStartPointer; // Новое
 
   const MapSettings({
     required this.uiAutoHideSeconds,
     required this.mapAutoCenterSeconds,
     required this.defaultRotationMode,
+    this.enableStartPointer = true, // Новое
   });
 
   MapSettings copyWith({
     int? uiAutoHideSeconds,
     int? mapAutoCenterSeconds,
     MapRotationMode? defaultRotationMode,
+    bool? enableStartPointer, // Новое
   }) {
     return MapSettings(
       uiAutoHideSeconds: uiAutoHideSeconds ?? this.uiAutoHideSeconds,
       mapAutoCenterSeconds: mapAutoCenterSeconds ?? this.mapAutoCenterSeconds,
       defaultRotationMode: defaultRotationMode ?? this.defaultRotationMode,
+      enableStartPointer: enableStartPointer ?? this.enableStartPointer, // Новое
     );
   }
 } // конец класса MapSettings
@@ -53,13 +57,21 @@ class MapSettingsNotifier extends StateNotifier<MapSettings> {
     final uiHide = prefs.getInt('uiAutoHideSeconds') ?? 5;
     final autoCenter = prefs.getInt('mapAutoCenterSeconds') ?? 5;
     final rotModeStr = prefs.getString('defaultRotationMode') ?? 'north';
+    final startPtr = prefs.getBool('enableStartPointer') ?? true; // Новое
     
     state = MapSettings(
       uiAutoHideSeconds: uiHide,
       mapAutoCenterSeconds: autoCenter,
       defaultRotationMode: rotModeStr == 'heading' ? MapRotationMode.heading : MapRotationMode.north,
+      enableStartPointer: startPtr, // Новое
     );
   } // конец метода _loadFromPrefs
+
+  Future<void> setEnableStartPointer(bool value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool('enableStartPointer', value);
+    state = state.copyWith(enableStartPointer: value);
+  }
 
   Future<void> setUiAutoHide(int seconds) async {
     final prefs = ref.read(sharedPreferencesProvider);

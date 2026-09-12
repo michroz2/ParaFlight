@@ -20,6 +20,8 @@ class WindCirclePainter extends CustomPainter {
   final String scaleText;
   final bool showNorthPointer;
   final bool isValid; // Изменение
+  final double? startPointerBearing; // Новое
+  final double? startDistanceKm; // Новое
 
   WindCirclePainter({
     required this.windDirection,
@@ -29,6 +31,8 @@ class WindCirclePainter extends CustomPainter {
     required this.scaleText,
     required this.showNorthPointer,
     required this.isValid,
+    this.startPointerBearing, // Новое
+    this.startDistanceKm, // Новое
   });
 
   @override
@@ -212,6 +216,63 @@ class WindCirclePainter extends CustomPainter {
         Offset(textCenterX - textPainter.width / 2, textCenterY - textPainter.height / 2),
       );
     } // конец if
+
+    // Новое: Отрисовка стрелки на старт
+    if (startPointerBearing != null && startDistanceKm != null) {
+      final startScreenAngle = (startPointerBearing! - mapRotation) * pi / 180.0;
+      final startDrawAngle = startScreenAngle - pi / 2;
+
+      final sTipX = center.dx + radius * cos(startDrawAngle);
+      final sTipY = center.dy + radius * sin(startDrawAngle);
+
+      final sArrowLength = 14.0; 
+      final sArrowWidth = 12.0;
+
+      final sBackX = center.dx + (radius + sArrowLength) * cos(startDrawAngle);
+      final sBackY = center.dy + (radius + sArrowLength) * sin(startDrawAngle);
+
+      final sPerpAngle = startDrawAngle + pi / 2;
+      final sP1X = sBackX + (sArrowWidth / 2) * cos(sPerpAngle);
+      final sP1Y = sBackY + (sArrowWidth / 2) * sin(sPerpAngle);
+      final sP2X = sBackX - (sArrowWidth / 2) * cos(sPerpAngle);
+      final sP2Y = sBackY - (sArrowWidth / 2) * sin(sPerpAngle);
+
+      final sArrowPath = Path()
+        ..moveTo(sTipX, sTipY)
+        ..lineTo(sP1X, sP1Y)
+        ..lineTo(sP2X, sP2Y)
+        ..close();
+
+      canvas.drawPath(sArrowPath, Paint()..color = Colors.greenAccent);
+
+      // Плашка с дистанцией (горизонтальная)
+      final sTextStr = '${startDistanceKm!.toStringAsFixed(1)} км';
+      final sTextSpan = TextSpan(
+        text: sTextStr,
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+      );
+      final sTextPainter = TextPainter(text: sTextSpan, textDirection: TextDirection.ltr)..layout();
+
+      final sTextDist = radius + sArrowLength + 16.0;
+      final sTextCenterX = center.dx + sTextDist * cos(startDrawAngle);
+      final sTextCenterY = center.dy + sTextDist * sin(startDrawAngle);
+
+      final sTextRect = Rect.fromCenter(
+        center: Offset(sTextCenterX, sTextCenterY),
+        width: sTextPainter.width + 6,
+        height: sTextPainter.height + 4,
+      );
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(sTextRect, const Radius.circular(4.0)),
+        Paint()..color = Colors.green.withAlpha(200),
+      );
+      
+      sTextPainter.paint(
+        canvas, 
+        Offset(sTextCenterX - sTextPainter.width / 2, sTextCenterY - sTextPainter.height / 2)
+      );
+    } // конец блока старта
   } // конец метода paint
 
   @override
@@ -221,6 +282,8 @@ class WindCirclePainter extends CustomPainter {
            oldDelegate.mapRotation != mapRotation ||
            oldDelegate.diameter != diameter ||
            oldDelegate.isValid != isValid || // Изменение
+           oldDelegate.startPointerBearing != startPointerBearing || // Новое
+           oldDelegate.startDistanceKm != startDistanceKm || // Новое
            oldDelegate.scaleText != scaleText;
   } // конец метода shouldRepaint
 } // конец класса WindCirclePainter
