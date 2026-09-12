@@ -97,7 +97,8 @@ class WindCompassOverlay extends ConsumerWidget {
       
       if (!isVisible) {
         const distance = Distance();
-        startDistanceKm = distance.as(LengthUnit.Kilometer, currentLatLng, startLatLng);
+        final distMeters = distance(currentLatLng, startLatLng);
+        startDistanceKm = distMeters / 1000.0;
         startBearing = distance.bearing(currentLatLng, startLatLng);
       }
     }
