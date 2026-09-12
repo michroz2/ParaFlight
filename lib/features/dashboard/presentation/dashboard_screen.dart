@@ -304,17 +304,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     final screenSize = MediaQuery.of(context).size;
 
-    // Новое: Оффсет для смещения оптического центра карты вниз.
-    // Значение 0.2 означает, что карта удлиняется вниз на 20% высоты экрана.
-    // Это математически смещает её геометрический центр (и маркер самолета) на 10% вниз (на отметку 60% от верха экрана).
-    final double mapCenterOffsetPercent = 0.2;
+    final dataSource = ref.watch(dataSourceProvider);
+    final isSimulation = dataSource == DataSource.simulator;
+
+    // Изменение: Динамический оффсет для смещения оптического центра карты вниз.
+    // 0.0 для симулятора (по центру, освобождая низ), 0.2 для реального GPS (сдвиг вниз на 10%).
+    final double mapCenterOffsetPercent = isSimulation ? 0.0 : 0.2;
 
     final track = ref.watch(flightPathProvider);
     final asyncLocation = ref.watch(locationProvider);
     final gpxStateAsync = ref.watch(gpxPointsProvider);
     final gpxState = gpxStateAsync.valueOrNull;
     final currentLocation = asyncLocation.valueOrNull;
-    final dataSource = ref.watch(dataSourceProvider);
     final isKioskActive = dataSource == DataSource.internalGps && ref.watch(cockpitModeProvider); // Новое: проверяем активен ли киоск
 
     final playbackState = ref.watch(playbackProvider);
