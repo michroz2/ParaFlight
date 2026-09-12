@@ -61,6 +61,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   // Переменная для настройки скорости возврата карты на маркер самолёта (в миллисекундах)
   final int _mapReturnAnimationMs = 1000;
 
+  // --- ОГРАНИЧИТЕЛИ МАСШТАБА КАРТЫ ---
+  // Зум 8.5: обзор около 100-120 км (соответствует нашему максимальному радиусу 50 000 м)
+  static const double _kMapMinZoom = 8.5; 
+  // Зум 18.5: обзор около 100-150 м (близко к радиусу 10-25 м). 
+  // Глубже опускаться нельзя, так как тайлы OSM обычно не рендерятся дальше 19-го зума.
+  static const double _kMapMaxZoom = 18.5;
+
   @override
   void initState() {
     super.initState();
@@ -432,6 +439,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         )
                       : const LatLng(0, 0),
                   initialZoom: 13.0,
+                  minZoom: _kMapMinZoom, // Новое: Защита от отдаления в космос
+                  maxZoom: _kMapMaxZoom, // Новое: Защита от провала в пустые пиксели
                   interactionOptions: const InteractionOptions(
                     flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                   ),
